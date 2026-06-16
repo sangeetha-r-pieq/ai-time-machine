@@ -63,6 +63,19 @@ function makeAgent(
   return { id, name, role, color, bubbleColor, probability, responses, fallback };
 }
 
+export function getAgentGreeting(agent: Agent): string {
+  if (agent.fallback.length === 0) return `Hello — I am ${agent.name}. What do you wish to know?`;
+  return agent.fallback[Math.floor(Math.random() * agent.fallback.length)];
+}
+
+export function getAgentFallbackReply(agent: Agent, question: string): string {
+  for (const { triggers, reply } of agent.responses) {
+    if (triggers.some(r => r.test(question))) return reply;
+  }
+  const topic = question.length > 80 ? `${question.slice(0, 80)}…` : question;
+  return `You ask about "${topic}" — the timestream flickers. I'd answer fully if the connection were stable. Please try again.`;
+}
+
 // ─── Era definitions ─────────────────────────────────────────────────────────
 
 const CONFIGS: EraConfig[] = [

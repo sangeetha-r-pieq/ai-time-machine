@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowUp, Mic, Volume2, Copy, Trash2, Target, CheckCircle2, ChevronDown, ChevronUp, Maximize2 } from "lucide-react";
-import { type EraConfig, type Agent } from "./era-config";
+import { type EraConfig, type Agent, getAgentGreeting, getAgentFallbackReply } from "./era-config";
 import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS } from "./era-hotspots";
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
-import { getIndiaAgentIdentity, getIndiaGreeting, getIndiaFallbackReply } from "./india-agents";
 import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
 import { playPingSound } from "./sounds";
@@ -36,8 +35,8 @@ const DEFAULT_CHAT_HEIGHT = 72;
 const MIN_CHAT_HEIGHT = 50;
 const MAX_CHAT_HEIGHT = 90;
 
-function displayName(config: EraConfig, agent: Agent): string {
-  return getIndiaAgentIdentity(config.id, agent.id).name;
+function displayName(_config: EraConfig, agent: Agent): string {
+  return agent.name;
 }
 
 export function AgentChat({
@@ -127,14 +126,13 @@ export function AgentChat({
 
     if (!hydrated.current) {
       const primary = config.agents[0];
-      const identity = getIndiaAgentIdentity(config.id, primary.id);
       const intro: Message = {
         id: `arrival-${config.id}`,
         agentId: primary.id,
-        agentName: identity.name,
+        agentName: primary.name,
         agentColor: primary.color,
         bubbleColor: primary.bubbleColor,
-        text: getIndiaGreeting(config.id, primary.id),
+        text: getAgentGreeting(primary),
       };
       setMessages([intro]);
       setSelectedAgentId(primary.id);
@@ -161,7 +159,7 @@ export function AgentChat({
 
   const buildHistory = useCallback(
     (msgs: Message[], agentId: string): ChatHistoryItem[] => {
-      const agentName = getIndiaAgentIdentity(config.id, agentId).name;
+      const agent = config.agents.find(a => a.id === agentId) ?? config.agents[0];
       const items: ChatHistoryItem[] = [];
       for (let i = 0; i < msgs.length; i++) {
         const m = msgs[i];
@@ -172,12 +170,12 @@ export function AgentChat({
             items.push({ sender: "user", text: m.text, isUser: true });
           }
         } else if (m.agentId === agentId) {
-          items.push({ sender: agentName, text: m.text, isUser: false });
+          items.push({ sender: agent.name, text: m.text, isUser: false });
         }
       }
       return items;
     },
-    [config.id]
+    [config.agents]
   );
 
   const sendMessage = useCallback(async (text: string) => {
@@ -201,8 +199,7 @@ export function AgentChat({
       setHeaderCompact(true);
     }
     setBusy(true);
-    const agentIdentity = getIndiaAgentIdentity(config.id, selectedAgent.id);
-    setTypingAgent(agentIdentity.name);
+    setTypingAgent(selectedAgent.name);
     onAgentSpeaking?.(true);
 
     updateMemory(`lastQuestion-${config.id}`, trimmed);
@@ -226,8 +223,8 @@ export function AgentChat({
     }
 
     let response = await fetchAgentChat({
-      agentName: agentIdentity.name,
-      agentRole: agentIdentity.role,
+      agentName: selectedAgent.name,
+      agentRole: selectedAgent.role,
       agentId: selectedAgent.id,
       eraId: config.id,
       eraName: config.name,
@@ -247,8 +244,8 @@ export function AgentChat({
     if (response.reply.includes("timestream is unstable")) {
       response = {
         ...response,
-        reply: getIndiaFallbackReply(config.id, selectedAgent.id, trimmed, year),
-        fun_fact: response.fun_fact || `In ${year}, India and the world were deeply intertwined.`,
+        reply: getAgentFallbackReply(selectedAgent, trimmed),
+        fun_fact: response.fun_fact || yearContext.detail,
       };
       setChatError("Connection unstable — showing local archive response.");
     }
@@ -257,7 +254,7 @@ export function AgentChat({
     setMessages(prev => [...prev, {
       id: msgId,
       agentId: selectedAgent.id,
-      agentName: agentIdentity.name,
+      agentName: selectedAgent.name,
       agentColor: selectedAgent.color,
       bubbleColor: selectedAgent.bubbleColor,
       text: "",
@@ -302,14 +299,13 @@ export function AgentChat({
   const handleClearChat = () => {
     clearChat(config.id);
     const primary = config.agents[0];
-    const identity = getIndiaAgentIdentity(config.id, primary.id);
     setMessages([{
       id: `arrival-${config.id}-${Date.now()}`,
       agentId: primary.id,
-      agentName: identity.name,
+      agentName: primary.name,
       agentColor: primary.color,
       bubbleColor: primary.bubbleColor,
-      text: getIndiaGreeting(config.id, primary.id),
+      text: getAgentGreeting(primary),
     }]);
     setMissionComplete(false);
     setFollowUpChips([]);

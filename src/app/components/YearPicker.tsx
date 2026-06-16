@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Sun, Moon, BookOpen, Clock, Keyboard } from "lucide-react";
 import { getEraConfig, formatYear, parseYear } from "./era-config";
 import { getYearContext } from "./year-context";
-import { getIndiaBackgroundUrl } from "./india-content";
+import { getEraBackgroundUrl } from "./india-content";
 import { SceneParticles } from "./SceneParticles";
 import { playPingSound } from "./sounds";
 
@@ -45,7 +45,7 @@ export function YearPicker({
   const timelineRef = useRef<HTMLDivElement>(null);
   const era = getEraConfig(year);
   const yearContext = useMemo(() => getYearContext(year), [year]);
-  const backgroundUrl = useMemo(() => getIndiaBackgroundUrl(era.id, year), [era.id, year]);
+  const backgroundUrl = useMemo(() => getEraBackgroundUrl(era.id, year), [era.id, year]);
 
   useEffect(() => {
     setBgLoaded(false);
@@ -283,7 +283,7 @@ export function YearPicker({
               letterSpacing: "0.03em",
             }}
           >
-            India First · Stories of the World
+            Stories Across Time
           </p>
         </motion.div>
 

@@ -6,7 +6,7 @@ import { EraScene } from "./components/EraScene";
 import { AgentChat } from "./components/AgentChat";
 import { getEraConfig, formatYear, type EraId } from "./components/era-config";
 import { useWideLayout } from "./hooks/useWideLayout";
-import { getIndiaBackgroundUrl } from "./components/india-content";
+import { getEraBackgroundUrl } from "./components/india-content";
 import { startAmbient, stopAmbient, playArrivalSound } from "./components/sounds";
 import { fireStampCelebration, fireSouvenirCelebration, fireCompleteCollectionCelebration } from "./components/celebrations";
 import { X, Lock, Compass } from "lucide-react";
@@ -25,83 +25,83 @@ interface Souvenir {
 const SOUVENIRS: Record<string, Souvenir> = {
   prehistoric: {
     id: "prehistoric",
-    name: "Bhimbetka Cave Painting Rubbing",
+    name: "Cave Painting Charcoal",
     emoji: "🎨",
     eraId: "prehistoric",
-    eraName: "Prehistoric Bharat",
-    description: "A charcoal rubbing from a 10,000-year-old hunting scene at Bhimbetka, Madhya Pradesh."
+    eraName: "Prehistoric Era",
+    description: "A charcoal rubbing from a 15,000-year-old hunting scene — humanity's oldest art."
   },
   ancient: {
     id: "ancient",
-    name: "Indus Unicorn Seal",
-    emoji: "🦭",
+    name: "Papyrus Scroll Fragment",
+    emoji: "📜",
     eraId: "ancient",
-    eraName: "Indus Valley Era",
-    description: "A steatite seal from Mohenjo-daro depicting the mysterious unicorn — script still undeciphered."
+    eraName: "Ancient World",
+    description: "A scrap of papyrus recording grain rations for pyramid workers — bureaucracy in ink."
   },
   classical: {
     id: "classical",
-    name: "Ashoka Chakra Fragment",
-    emoji: "☸️",
+    name: "Athenian Obol Coin",
+    emoji: "🪙",
     eraId: "classical",
-    eraName: "Classical India",
-    description: "A stone fragment from a Mauryan pillar — the chakra that would one day fly on India's flag."
+    eraName: "Classical Antiquity",
+    description: "A silver coin from the agora — payment for olives, wine, or a seat at the theatre."
   },
   medieval: {
     id: "medieval",
-    name: "Vijayanagara Gold Coin",
-    emoji: "🪙",
+    name: "Illuminated Manuscript Page",
+    emoji: "📖",
     eraId: "medieval",
-    eraName: "Medieval India",
-    description: "A pagoda coin from Hampi's bustling bazaar — trade with Persia, Portugal, and China."
+    eraName: "Medieval Era",
+    description: "A monk's painstaking copy of a gospel — gold leaf and devotion on vellum."
   },
   industrial: {
     id: "industrial",
-    name: "1853 Railway Ticket",
-    emoji: "🚂",
+    name: "Steam Engine Valve",
+    emoji: "⚙️",
     eraId: "industrial",
-    eraName: "Colonial Era",
-    description: "A first-class ticket from Bombay to Thane — India's first passenger train journey."
+    eraName: "Industrial Era",
+    description: "A brass valve from a Manchester mill loom — the machine age in your palm."
   },
   wartime: {
     id: "wartime",
-    name: "Quit India Pamphlet",
-    emoji: "🇮🇳",
+    name: "Field Ration Tin",
+    emoji: "🥫",
     eraId: "wartime",
-    eraName: "Freedom Struggle",
-    description: "A banned pamphlet from 1942 bearing Gandhi's call — 'Do or Die.'"
+    eraName: "World Wars Era",
+    description: "A dented tin from the Normandy campaign — bully beef and biscuits, 1944."
   },
   analog: {
     id: "analog",
-    name: "ISRO Rocket Model",
+    name: "Apollo 11 Mission Patch",
     emoji: "🚀",
     eraId: "analog",
-    eraName: "Space Age India",
-    description: "A miniature SLV-3 rocket — the vehicle that launched Rohini, India's first satellite."
+    eraName: "Space Age",
+    description: "An embroidered patch from the mission that put humans on the Moon — July 1969."
   },
   digital: {
     id: "digital",
-    name: "Bangalore Startup Floppy",
+    name: "Floppy Disk",
     emoji: "💾",
     eraId: "digital",
-    eraName: "IT Revolution",
-    description: "A floppy disk labeled 'Y2K Patch v1.0' from an early Infosys development team."
+    eraName: "Digital Age",
+    description: "A 3.5-inch disk labeled 'www v1.0' — the web fit on 1.44 megabytes once."
   },
   present: {
     id: "present",
-    name: "UPI QR Charm",
-    emoji: "📱",
+    name: "Neural Net Keychain",
+    emoji: "🤖",
     eraId: "present",
-    eraName: "Digital Bharat",
-    description: "A ceremonial QR code pendant — symbol of a billion instant digital payments."
+    eraName: "Present Day",
+    description: "A novelty charm shaped like a transformer block — the AI era's lucky token."
   },
   future: {
     id: "future",
-    name: "Gaganyaan Mission Patch",
+    name: "Mars Colony Badge",
     emoji: "🌙",
     eraId: "future",
-    eraName: "Future Bharat",
-    description: "An embroidered patch from India's first permanent lunar research habitat."
+    eraName: "The Future",
+    description: "An ID badge from the first permanent Mars research habitat — humanity's second home."
   }
 };
 
@@ -280,7 +280,7 @@ export default function App() {
             <EraScene
               config={config}
               year={year}
-              backgroundUrl={getIndiaBackgroundUrl(config.id, year)}
+              backgroundUrl={getEraBackgroundUrl(config.id, year)}
               isTalking={agentSpeaking}
               sceneReaction={sceneReaction}
             />

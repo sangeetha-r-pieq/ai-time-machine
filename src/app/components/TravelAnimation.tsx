@@ -23,14 +23,14 @@ const ERA_EMOJI: Record<EraId, string> = {
 
 const ERA_LABEL: Record<EraId, string> = {
   prehistoric: "Prehistoric",
-  ancient: "Indus Valley",
+  ancient: "Ancient World",
   classical: "Classical",
   medieval: "Medieval",
-  industrial: "Colonial",
-  wartime: "Freedom",
+  industrial: "Industrial",
+  wartime: "World Wars",
   analog: "Space Age",
-  digital: "IT Boom",
-  present: "Digital Bharat",
+  digital: "Digital Age",
+  present: "Present Day",
   future: "Future",
 };
 
