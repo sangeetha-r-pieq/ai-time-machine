@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { type EraConfig } from "./era-config";
 import { ERA_HOTSPOTS } from "./era-hotspots";
 import { SceneParticles } from "./SceneParticles";
+import { CartoonCharacter } from "./CartoonCharacter";
+import { getAgentAvatar } from "./india-content";
 import { playPingSound } from "./sounds";
 
 // ─── Horizon SVGs per era ────────────────────────────────────────────────────
@@ -195,117 +197,6 @@ function FutureHorizon({ dark, near }: { dark: string; near: string }) {
   );
 }
 
-// ─── Person Silhouettes ───────────────────────────────────────────────────────
-
-type PersonVariant = EraConfig["personVariant"];
-
-function PersonSilhouette({ variant }: { variant: PersonVariant }) {
-  const fill = "rgba(0,0,0,0.88)";
-  const svgProps = { viewBox: "0 0 80 200", width: 80, height: 200, style: { display: "block" } };
-
-  if (variant === "prehistoric") return (
-    <svg {...svgProps}>
-      <ellipse cx="43" cy="30" rx="15" ry="17" fill={fill} />
-      <path d="M25,44 Q14,62 12,95 Q10,128 16,162 Q22,175 38,178 Q54,178 60,163 Q66,130 64,97 Q62,64 52,46 Q46,40 43,44 Q36,42 25,44 Z" fill={fill} />
-      <path d="M25,52 Q14,72 18,108 L27,106 Q24,75 33,58 Z" fill={fill} />
-      <path d="M52,52 Q64,72 60,108 L51,106 Q54,75 46,58 Z" fill={fill} />
-      <rect x="22" y="174" width="13" height="24" rx="4" fill={fill} />
-      <rect x="42" y="174" width="13" height="24" rx="4" fill={fill} />
-      <line x1="66" y1="14" x2="60" y2="175" stroke={fill} strokeWidth="3" />
-      <polygon points="66,8 62,20 70,20" fill={fill} />
-    </svg>
-  );
-
-  if (variant === "ancient") return (
-    <svg {...svgProps}>
-      <rect x="24" y="4" width="32" height="11" fill={fill} />
-      <rect x="24" y="4" width="9" height="42" fill={fill} />
-      <rect x="47" y="4" width="9" height="42" fill={fill} />
-      <ellipse cx="40" cy="28" rx="14" ry="16" fill={fill} />
-      <path d="M26,44 L24,158 L56,158 L54,44 Z" fill={fill} />
-      <rect x="24" y="95" width="32" height="5" fill="rgba(0,0,0,0.3)" />
-      <rect x="14" y="52" width="12" height="60" rx="5" fill={fill} />
-      <rect x="54" y="52" width="12" height="60" rx="5" fill={fill} />
-      <rect x="29" y="157" width="10" height="40" rx="3" fill={fill} />
-      <rect x="42" y="157" width="10" height="40" rx="3" fill={fill} />
-      <line x1="68" y1="52" x2="68" y2="155" stroke={fill} strokeWidth="3" />
-      <ellipse cx="68" cy="48" rx="5" ry="6" fill="none" stroke={fill} strokeWidth="2.5" />
-    </svg>
-  );
-
-  if (variant === "medieval") return (
-    <svg {...svgProps}>
-      <ellipse cx="40" cy="26" rx="14" ry="16" fill={fill} />
-      <path d="M17,22 Q14,38 12,56 L68,56 Q66,38 63,22 Q52,16 40,18 Q28,16 17,22 Z" fill={fill} />
-      <path d="M12,56 Q5,115 10,182 L70,182 Q75,115 68,56 Z" fill={fill} />
-    </svg>
-  );
-
-  if (variant === "industrial") return (
-    <svg {...svgProps}>
-      <rect x="28" y="4" width="24" height="30" fill={fill} />
-      <rect x="20" y="34" width="40" height="5" fill={fill} />
-      <ellipse cx="40" cy="52" rx="13" ry="14" fill={fill} />
-      <path d="M24,66 L20,168 L36,168 L40,132 L44,168 L60,168 L56,66 Z" fill={fill} />
-      <rect x="12" y="70" width="14" height="65" rx="5" fill={fill} />
-      <rect x="54" y="70" width="14" height="65" rx="5" fill={fill} />
-      <line x1="58" y1="80" x2="66" y2="178" stroke={fill} strokeWidth="3" />
-      <circle cx="64" cy="80" r="4" fill={fill} />
-    </svg>
-  );
-
-  if (variant === "wartime") return (
-    <svg {...svgProps}>
-      <ellipse cx="40" cy="30" rx="20" ry="12" fill={fill} />
-      <ellipse cx="40" cy="34" rx="14" ry="14" fill={fill} />
-      <path d="M22,50 L20,140 L38,140 L40,120 L42,140 L60,140 L58,50 Z" fill={fill} />
-      <rect x="10" y="54" width="14" height="65" rx="4" fill={fill} />
-      <rect x="56" y="54" width="14" height="65" rx="4" fill={fill} />
-      <rect x="25" y="138" width="14" height="58" rx="4" fill={fill} />
-      <rect x="41" y="138" width="14" height="58" rx="4" fill={fill} />
-    </svg>
-  );
-
-  if (variant === "analog") return (
-    <svg {...svgProps}>
-      <rect x="28" y="12" width="24" height="10" rx="2" fill={fill} />
-      <rect x="22" y="8" width="36" height="5" fill={fill} />
-      <circle cx="40" cy="32" r="16" fill={fill} />
-      <path d="M23,50 L20,142 L37,142 L40,122 L43,142 L60,142 L57,50 Z" fill={fill} />
-      <rect x="10" y="54" width="13" height="65" rx="5" fill={fill} />
-      <rect x="57" y="54" width="13" height="65" rx="5" fill={fill} />
-      <rect x="25" y="140" width="13" height="56" rx="4" fill={fill} />
-      <rect x="42" y="140" width="13" height="56" rx="4" fill={fill} />
-    </svg>
-  );
-
-  if (variant === "future") return (
-    <svg {...svgProps}>
-      <ellipse cx="40" cy="28" rx="17" ry="19" fill={fill} />
-      <path d="M24,24 Q40,19 56,24 Q57,31 40,34 Q23,31 24,24 Z" fill="rgba(0,100,200,0.35)" />
-      <path d="M23,48 L22,142 L37,142 L40,122 L43,142 L58,142 L57,48 Z" fill={fill} />
-      <rect x="13" y="48" width="14" height="8" rx="4" fill={fill} />
-      <rect x="53" y="48" width="14" height="8" rx="4" fill={fill} />
-      <rect x="13" y="56" width="12" height="55" rx="4" fill={fill} />
-      <rect x="55" y="56" width="12" height="55" rx="4" fill={fill} />
-      <rect x="26" y="140" width="13" height="56" rx="5" fill={fill} />
-      <rect x="41" y="140" width="13" height="56" rx="5" fill={fill} />
-    </svg>
-  );
-
-  // modern (default)
-  return (
-    <svg {...svgProps}>
-      <circle cx="40" cy="28" r="17" fill={fill} />
-      <path d="M22,46 L20,142 L37,142 L40,122 L43,142 L60,142 L58,46 Z" fill={fill} />
-      <path d="M22,50 L12,122 L22,124 L30,62 Z" fill={fill} />
-      <path d="M58,50 L68,122 L58,124 L50,62 Z" fill={fill} />
-      <rect x="25" y="140" width="14" height="56" rx="5" fill={fill} />
-      <rect x="41" y="140" width="14" height="56" rx="5" fill={fill} />
-    </svg>
-  );
-}
-
 // ─── EraScene ─────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -483,15 +374,12 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
         onClick={(e) => { e.stopPropagation(); handlePersonClick(); }}
         title="Click to greet"
       >
-        <PersonSilhouette variant={config.personVariant} />
-        {isTalking && (
-          <motion.div
-            className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full"
-            style={{ background: config.accentColor, filter: `blur(4px)` }}
-            animate={{ opacity: [0.3, 0.8, 0.3], scaleX: [0.6, 1, 0.6] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
-          />
-        )}
+        <CartoonCharacter
+          variant={config.personVariant}
+          accentColor={config.accentColor}
+          isTalking={isTalking || personWave}
+          avatarEmoji={getAgentAvatar(config.id, config.agents[0].id)}
+        />
       </motion.div>
 
       {/* Ground shadow under person */}

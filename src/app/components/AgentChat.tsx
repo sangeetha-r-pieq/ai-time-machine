@@ -6,6 +6,7 @@ import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS } from "./era-hotspots";
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
+import { ChatBubble, TypingBubble, FunFactCard } from "./ChatBubble";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { getYearContext } from "./year-context";
 import { loadChat, saveChat, clearChat, type StoredMessage } from "./chat-storage";
@@ -371,17 +372,17 @@ export function AgentChat({
                   <div className="mb-1 font-mono text-[9px] tracking-widest uppercase" style={{ color: msg.agentColor }}>{msg.agentName}</div>
                 )}
                 <div className="relative">
-                  <div style={{
-                    padding: "9px 13px",
-                    borderRadius: msg.isUser ? "12px 12px 2px 12px" : "2px 12px 12px 12px",
-                    background: msg.isUser ? "var(--glass-bg)" : msg.bubbleColor,
-                    border: `1px solid ${msg.isUser ? "var(--border-color)" : "var(--border-color-subtle)"}`,
-                    color: "var(--text-primary)", fontSize: "13px", lineHeight: 1.65,
-                    fontFamily: config.fontFamily, whiteSpace: "pre-wrap", wordBreak: "break-word",
-                  }}>
-                    {formatMessageText(msg.text)}
-                    {msg.streaming && <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>▍</motion.span>}
-                  </div>
+                  <ChatBubble
+                    isUser={!!msg.isUser}
+                    background={msg.isUser ? (theme === "dark" ? "rgba(255,255,255,0.08)" : "#fff") : msg.bubbleColor}
+                    borderColor={msg.isUser ? "var(--border-color)" : msg.agentColor}
+                    shadowColor={msg.isUser ? "#2D3436" : msg.agentColor}
+                  >
+                    <span style={{ fontFamily: config.fontFamily }}>
+                      {formatMessageText(msg.text)}
+                      {msg.streaming && <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>▍</motion.span>}
+                    </span>
+                  </ChatBubble>
                   {!msg.isUser && msg.text && !msg.streaming && (
                     <button type="button" onClick={() => copyMessage(msg.text)} className="absolute -right-6 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer" style={{ color: "var(--text-muted)" }} title="Copy">
                       <Copy size={10} />
@@ -389,15 +390,26 @@ export function AgentChat({
                   )}
                 </div>
                 {msg.funFact && !msg.streaming && (
-                  <div className="mt-1.5 px-2.5 py-1.5 rounded-lg text-[10px] leading-relaxed" style={{ background: `${config.accentColor}12`, border: `1px solid ${config.accentColor}33`, color: "var(--text-secondary)" }}>
-                    <span style={{ color: config.accentColor, fontWeight: 600 }}>Did you know? </span>{msg.funFact}
-                  </div>
+                  <FunFactCard accentColor={config.accentColor}>
+                    <span style={{ color: config.accentColor, fontWeight: 700 }}>Did you know? </span>{msg.funFact}
+                  </FunFactCard>
                 )}
               </div>
             </motion.div>
           ))}
           {typingAgent && (
-            <div className="font-mono text-[9px]" style={{ color: selectedAgent.color }}>{typingAgent} is thinking...</div>
+            <div className="flex gap-2 justify-start items-end">
+              <Avatar className="size-6 shrink-0">
+                <AvatarFallback className="text-xs" style={{ background: `${selectedAgent.color}22`, color: selectedAgent.color }}>
+                  {getAgentAvatar(config.id, selectedAgent.id)}
+                </AvatarFallback>
+              </Avatar>
+              <TypingBubble
+                background={selectedAgent.bubbleColor}
+                borderColor={selectedAgent.color}
+                dotColor={selectedAgent.color}
+              />
+            </div>
           )}
         </AnimatePresence>
         <div ref={bottomRef} />
