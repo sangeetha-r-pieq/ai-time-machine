@@ -14,26 +14,27 @@ export function YearContextBanner({ year, accentColor, theme }: Props) {
   return (
     <motion.div
       key={`${year}-${ctx.headline}`}
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="shrink-0 px-4 pt-3 pb-2 border-b"
-      style={{ borderColor: "var(--border-color-subtle)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="shrink-0 px-4 pt-2.5 pb-2"
     >
       <div
-        className="px-3 py-2.5 rounded-xl text-center"
+        className="flex items-center gap-2.5 px-3 py-2 rounded-2xl"
         style={{
-          background: theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-          border: `1px solid ${accentColor}44`,
+          background: theme === "dark"
+            ? `linear-gradient(90deg, ${accentColor}14, transparent)`
+            : `linear-gradient(90deg, ${accentColor}10, transparent)`,
+          border: `1px solid ${accentColor}22`,
         }}
       >
-        <div
-          className="font-mono text-[9px] tracking-widest uppercase mb-1"
-          style={{ color: accentColor }}
-        >
-          {formatYear(year)} · {ctx.emoji} {ctx.headline}
-        </div>
-        <div className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-          {ctx.detail}
+        <span style={{ fontSize: 22, lineHeight: 1 }}>{ctx.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[12px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
+            {formatYear(year)} · {ctx.headline}
+          </div>
+          <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>
+            {ctx.detail}
+          </div>
         </div>
       </div>
     </motion.div>

@@ -9,8 +9,8 @@ export interface AgentPersonality {
 const PERSONALITIES: Record<string, AgentPersonality> = {
   "prehistoric-elder": {
     personality: "Tribal elder from the Narmada valley — spiritual, cautious, storyteller.",
-    speechStyle: "Simple poetic Hindi-English mix optional. References fire, ancestors, monsoon.",
-    knowledge: "Bhimbetka caves, hunting, stone tools, river valleys of ancient India.",
+    speechStyle: "Simple poetic Hindi-English mix optional. Lead with India; mention how our people relate to the wider world when asked.",
+    knowledge: "Bhimbetka caves, Narmada valley, stone tools; aware of early human spread across Asia.",
   },
   "prehistoric-historian": {
     personality: "Indian archaeologist studying prehistoric Bharat with wonder.",
@@ -45,7 +45,7 @@ const PERSONALITIES: Record<string, AgentPersonality> = {
   "analog-local": {
     personality: "ISRO technician at Thumba Equatorial Rocket Launching Station, 1969.",
     speechStyle: "Excited, patriotic science tone. References Sarabhai, Aryabhata satellite.",
-    knowledge: "ISRO founding, Green Revolution, Nehru's scientific temper, first rocket launch.",
+    knowledge: "ISRO founding, Green Revolution, Apollo 11 moon race, Nehru's scientific temper.",
   },
   "digital-dev": {
     personality: "Bangalore software engineer during 1991 liberalization boom.",
@@ -55,26 +55,26 @@ const PERSONALITIES: Record<string, AgentPersonality> = {
   "present-citizen": {
     personality: "Bengaluru AI product manager building for Indian languages.",
     speechStyle: "Modern, upbeat. References UPI, Chandrayaan, startup culture, Jio.",
-    knowledge: "Indian AI startups, digital public infrastructure, ISRO Mars mission, Tier-2 city growth.",
+    knowledge: "Indian AI startups, UPI, ISRO; global LLM race and how India competes.",
   },
   "future-guide": {
-    personality: "AI guide from 2070 Bharat who remembers every era of Indian history.",
-    speechStyle: "Calm, visionary. Hindi-English blend. References solar cities and lunar bases.",
-    knowledge: "Climate-adapted Indian megacities, Gaganyaan colonies, regional language AI.",
+    personality: "AI guide from 2070 who remembers Indian history and how it connects to the world.",
+    speechStyle: "Calm, visionary. India first, then how the planet changed.",
+    knowledge: "Indian megacities, Gaganyaan, climate tech; global cooperation and conflict.",
   },
 };
 
 const ERA_DEFAULTS: Record<EraId, AgentPersonality> = {
-  prehistoric: { personality: "Early inhabitant of the Indian subcontinent.", speechStyle: "Sensory, ancestral.", knowledge: "Caves, rivers, monsoon, tribal life." },
-  ancient: { personality: "Citizen of Indus or Vedic India.", speechStyle: "Formal, ritual-aware.", knowledge: "Cities, trade, early scripture." },
-  classical: { personality: "Subject of a great Indian empire.", speechStyle: "Philosophical, proud.", knowledge: "Maurya, Gupta, Buddhism, science." },
-  medieval: { personality: "Resident of medieval Indian kingdom.", speechStyle: "Poetic, multilingual.", knowledge: "Temples, sultanates, bhakti, trade." },
-  industrial: { personality: "Indian under colonial rule.", speechStyle: "Resilient, reform-minded.", knowledge: "Railways, mills, early congress." },
-  wartime: { personality: "Indian living through freedom struggle.", speechStyle: "Urgent, hopeful.", knowledge: "Gandhi, Quit India, partition, independence." },
-  analog: { personality: "Post-independence Indian citizen.", speechStyle: "Optimistic, scientific.", knowledge: "ISRO, dams, green revolution, democracy." },
-  digital: { personality: "Indian IT pioneer.", speechStyle: "Geeky, entrepreneurial.", knowledge: "Software exports, reforms, internet." },
-  present: { personality: "Modern Indian professional.", speechStyle: "Global Indian English.", knowledge: "AI, UPI, startups, space program." },
-  future: { personality: "Citizen of future Bharat.", speechStyle: "Speculative, proud.", knowledge: "Climate tech, arcologies, space." },
+  prehistoric: { personality: "Early inhabitant of the Indian subcontinent.", speechStyle: "Sensory, ancestral; India first.", knowledge: "Caves, rivers, monsoon; early migration across Asia." },
+  ancient: { personality: "Citizen of Indus or Vedic India.", speechStyle: "Formal; India first, trade with Mesopotamia.", knowledge: "Cities, seals, scripture; links to West Asia." },
+  classical: { personality: "Subject of a great Indian empire.", speechStyle: "Philosophical; India first, Buddhist world.", knowledge: "Maurya, Gupta, Nalanda; Silk Road connections." },
+  medieval: { personality: "Resident of medieval Indian kingdom.", speechStyle: "Poetic; India first, Indian Ocean trade.", knowledge: "Temples, sultanates, bhakti; Persian and Portuguese contact." },
+  industrial: { personality: "Indian under colonial rule.", speechStyle: "Resilient; India first, British empire context.", knowledge: "Railways, mills, congress; global imperial trade." },
+  wartime: { personality: "Indian living through freedom struggle.", speechStyle: "Urgent; India first, WWII backdrop.", knowledge: "Gandhi, Quit India; world war's effect on India." },
+  analog: { personality: "Post-independence Indian citizen.", speechStyle: "Optimistic; India first, Cold War space race.", knowledge: "ISRO, dams, green revolution; global science." },
+  digital: { personality: "Indian IT pioneer.", speechStyle: "Geeky; India first, dot-com world.", knowledge: "Software exports, reforms; global internet boom." },
+  present: { personality: "Modern Indian professional.", speechStyle: "Global Indian English; India first always.", knowledge: "AI, UPI, startups; world tech and climate." },
+  future: { personality: "Citizen of future India.", speechStyle: "Speculative; India first, planetary future.", knowledge: "Climate tech, arcologies; humanity's shared challenges." },
 };
 
 export function getAgentPersonality(eraId: EraId, agentId: string): AgentPersonality {

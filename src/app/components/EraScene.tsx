@@ -6,6 +6,7 @@ import { SceneParticles } from "./SceneParticles";
 import { CartoonCharacter } from "./CartoonCharacter";
 import { getAgentAvatar } from "./india-content";
 import { playPingSound } from "./sounds";
+import { useWideLayout } from "../hooks/useWideLayout";
 
 // ─── Horizon SVGs per era ────────────────────────────────────────────────────
 
@@ -209,6 +210,7 @@ interface Props {
 }
 
 export function EraScene({ config, year, backgroundUrl, isTalking = false, sceneReaction = 0, onHotspotLore }: Props) {
+  const isWide = useWideLayout();
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
   const [particleBurst, setParticleBurst] = useState(0);
@@ -400,7 +402,12 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
       {/* Bottom ground-to-black gradient overlay (for chat panel readability) */}
       <div
         className="absolute left-0 right-0 bottom-0"
-        style={{ height: "42%", background: "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)", zIndex: 2, pointerEvents: "none" }}
+        style={{
+          height: isWide ? "18%" : "42%",
+          background: "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)",
+          zIndex: 2,
+          pointerEvents: "none",
+        }}
       />
     </motion.div>
   );

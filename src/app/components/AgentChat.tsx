@@ -1,21 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowUp, Mic, Volume2, Copy, Trash2, Target, CheckCircle2 } from "lucide-react";
-import { type EraConfig, type Agent, formatYear } from "./era-config";
+import { ArrowUp, Mic, Volume2, Copy, Trash2, Target, CheckCircle2, ChevronDown, ChevronUp, Maximize2 } from "lucide-react";
+import { type EraConfig, type Agent } from "./era-config";
 import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS } from "./era-hotspots";
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
-import { ChatBubble, TypingBubble, FunFactCard } from "./ChatBubble";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import { getYearContext } from "./year-context";
-import { loadChat, saveChat, clearChat, type StoredMessage } from "./chat-storage";
-import { YearContextBanner } from "./YearContextBanner";
+import { getIndiaAgentIdentity, getIndiaGreeting, getIndiaFallbackReply } from "./india-agents";
+import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
 import { playPingSound } from "./sounds";
 import { playVoice, stopVoice } from "./voice";
 import { fetchAgentChat, streamReplyText, type ChatHistoryItem } from "../api";
 import { useTravel } from "../../context/TravelContext";
+import { getYearContext } from "./year-context";
+import { loadChat, saveChat, clearChat, type StoredMessage } from "./chat-storage";
+import { useWideLayout } from "../hooks/useWideLayout";
 
 interface Message extends StoredMessage {
   streaming?: boolean;
@@ -31,11 +31,13 @@ interface Props {
   theme: "light" | "dark";
 }
 
-function fallbackReply(agent: Agent, question: string): string {
-  for (const { triggers, reply } of agent.responses) {
-    if (triggers.some(r => r.test(question))) return reply;
-  }
-  return agent.fallback[Math.floor(Math.random() * agent.fallback.length)];
+const CHAT_HEIGHT_KEY = "ai-time-machine-chat-height";
+const DEFAULT_CHAT_HEIGHT = 72;
+const MIN_CHAT_HEIGHT = 50;
+const MAX_CHAT_HEIGHT = 90;
+
+function displayName(config: EraConfig, agent: Agent): string {
+  return getIndiaAgentIdentity(config.id, agent.id).name;
 }
 
 export function AgentChat({
@@ -51,6 +53,7 @@ export function AgentChat({
   const mission = ERA_MISSIONS[config.id];
   const yearContext = getYearContext(year);
   const hotspots = ERA_HOTSPOTS[config.id] ?? [];
+  const isWide = useWideLayout();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState(config.agents[0].id);
@@ -61,7 +64,19 @@ export function AgentChat({
   const [missionComplete, setMissionComplete] = useState(false);
   const [followUpChips, setFollowUpChips] = useState<string[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [panelHeight, setPanelHeight] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(CHAT_HEIGHT_KEY);
+      const n = saved ? Number(saved) : DEFAULT_CHAT_HEIGHT;
+      return Number.isFinite(n) ? Math.min(MAX_CHAT_HEIGHT, Math.max(MIN_CHAT_HEIGHT, n)) : DEFAULT_CHAT_HEIGHT;
+    } catch {
+      return DEFAULT_CHAT_HEIGHT;
+    }
+  });
+  const [headerCompact, setHeaderCompact] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const panelHeightRef = useRef(panelHeight);
   const prevEra = useRef(config.id);
   const hydrated = useRef(false);
   const journeyLogged = useRef(false);
@@ -91,6 +106,10 @@ export function AgentChat({
   }, []);
 
   useEffect(() => {
+    panelHeightRef.current = panelHeight;
+  }, [panelHeight]);
+
+  useEffect(() => {
     if (prevEra.current !== config.id) {
       prevEra.current = config.id;
       hydrated.current = false;
@@ -108,13 +127,14 @@ export function AgentChat({
 
     if (!hydrated.current) {
       const primary = config.agents[0];
+      const identity = getIndiaAgentIdentity(config.id, primary.id);
       const intro: Message = {
         id: `arrival-${config.id}`,
         agentId: primary.id,
-        agentName: primary.name,
+        agentName: identity.name,
         agentColor: primary.color,
         bubbleColor: primary.bubbleColor,
-        text: primary.fallback[Math.floor(Math.random() * primary.fallback.length)],
+        text: getIndiaGreeting(config.id, primary.id),
       };
       setMessages([intro]);
       setSelectedAgentId(primary.id);
@@ -140,13 +160,24 @@ export function AgentChat({
   }, [onAgentSpeaking]);
 
   const buildHistory = useCallback(
-    (msgs: Message[], agentName: string): ChatHistoryItem[] =>
-      msgs
-        .filter(m => m.isUser || m.agentName === agentName)
-        .filter(m => !m.streaming)
-        .filter(m => !m.id.startsWith("arrival-") || m.agentName === agentName)
-        .map(m => ({ sender: m.isUser ? "user" : m.agentName, text: m.text, isUser: !!m.isUser })),
-    []
+    (msgs: Message[], agentId: string): ChatHistoryItem[] => {
+      const agentName = getIndiaAgentIdentity(config.id, agentId).name;
+      const items: ChatHistoryItem[] = [];
+      for (let i = 0; i < msgs.length; i++) {
+        const m = msgs[i];
+        if (m.streaming || m.id.startsWith("arrival-")) continue;
+        if (m.isUser) {
+          const next = msgs[i + 1];
+          if (next && !next.isUser && next.agentId === agentId) {
+            items.push({ sender: "user", text: m.text, isUser: true });
+          }
+        } else if (m.agentId === agentId) {
+          items.push({ sender: agentName, text: m.text, isUser: false });
+        }
+      }
+      return items;
+    },
+    [config.id]
   );
 
   const sendMessage = useCallback(async (text: string) => {
@@ -165,8 +196,13 @@ export function AgentChat({
       isUser: true,
     };
     setMessages(prev => [...prev, userMsg]);
+    if (!messages.some(m => m.isUser)) {
+      setPanelHeight(h => Math.max(h, 78));
+      setHeaderCompact(true);
+    }
     setBusy(true);
-    setTypingAgent(selectedAgent.name);
+    const agentIdentity = getIndiaAgentIdentity(config.id, selectedAgent.id);
+    setTypingAgent(agentIdentity.name);
     onAgentSpeaking?.(true);
 
     updateMemory(`lastQuestion-${config.id}`, trimmed);
@@ -176,7 +212,7 @@ export function AgentChat({
       journeyLogged.current = true;
     }
 
-    const history = buildHistory([...messages, userMsg], selectedAgent.name);
+    const history = buildHistory(messages, selectedAgent.id);
     const personality = getAgentPersonality(config.id, selectedAgent.id);
 
     const travelerMemory: string[] = [];
@@ -190,8 +226,8 @@ export function AgentChat({
     }
 
     let response = await fetchAgentChat({
-      agentName: selectedAgent.name,
-      agentRole: selectedAgent.role,
+      agentName: agentIdentity.name,
+      agentRole: agentIdentity.role,
       agentId: selectedAgent.id,
       eraId: config.id,
       eraName: config.name,
@@ -211,8 +247,8 @@ export function AgentChat({
     if (response.reply.includes("timestream is unstable")) {
       response = {
         ...response,
-        reply: fallbackReply(selectedAgent, trimmed),
-        fun_fact: response.fun_fact || `In ${year}, life was vastly different from today.`,
+        reply: getIndiaFallbackReply(config.id, selectedAgent.id, trimmed, year),
+        fun_fact: response.fun_fact || `In ${year}, India and the world were deeply intertwined.`,
       };
       setChatError("Connection unstable — showing local archive response.");
     }
@@ -221,7 +257,7 @@ export function AgentChat({
     setMessages(prev => [...prev, {
       id: msgId,
       agentId: selectedAgent.id,
-      agentName: selectedAgent.name,
+      agentName: agentIdentity.name,
       agentColor: selectedAgent.color,
       bubbleColor: selectedAgent.bubbleColor,
       text: "",
@@ -266,13 +302,14 @@ export function AgentChat({
   const handleClearChat = () => {
     clearChat(config.id);
     const primary = config.agents[0];
+    const identity = getIndiaAgentIdentity(config.id, primary.id);
     setMessages([{
       id: `arrival-${config.id}-${Date.now()}`,
       agentId: primary.id,
-      agentName: primary.name,
+      agentName: identity.name,
       agentColor: primary.color,
       bubbleColor: primary.bubbleColor,
-      text: primary.fallback[Math.floor(Math.random() * primary.fallback.length)],
+      text: getIndiaGreeting(config.id, primary.id),
     }]);
     setMissionComplete(false);
     setFollowUpChips([]);
@@ -291,157 +328,350 @@ export function AgentChat({
     isListening ? recognitionRef.current.stop() : recognitionRef.current.start();
   };
 
+  const persistPanelHeight = (h: number) => {
+    try {
+      sessionStorage.setItem(CHAT_HEIGHT_KEY, String(Math.round(h)));
+    } catch { /* ignore */ }
+  };
+
+  const cyclePanelHeight = () => {
+    setPanelHeight(h => {
+      const next = h < 72 ? 78 : h < 82 ? 88 : DEFAULT_CHAT_HEIGHT;
+      persistPanelHeight(next);
+      return next;
+    });
+  };
+
+  const onResizeStart = (e: React.PointerEvent) => {
+    dragRef.current = { startY: e.clientY, startH: panelHeight };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onResizeMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const deltaPx = dragRef.current.startY - e.clientY;
+    const deltaPct = (deltaPx / window.innerHeight) * 100;
+    const next = Math.min(MAX_CHAT_HEIGHT, Math.max(MIN_CHAT_HEIGHT, dragRef.current.startH + deltaPct));
+    setPanelHeight(next);
+  };
+
+  const onResizeEnd = () => {
+    if (dragRef.current) persistPanelHeight(panelHeightRef.current);
+    dragRef.current = null;
+  };
+
+  const hasConversation = messages.some(m => m.isUser);
+
   return (
     <div
-      className="absolute left-0 right-0 bottom-0 flex flex-col rounded-t-3xl backdrop-blur-md"
+      className={`absolute flex flex-col ${
+        isWide
+          ? "right-0 top-0 bottom-0 left-auto w-[min(440px,42vw)]"
+          : "left-0 right-0 bottom-0 w-full max-w-[min(920px,96vw)] mx-auto"
+      }`}
       style={{
         zIndex: 10,
-        height: "52%",
-        maxWidth: 680,
-        margin: "0 auto",
+        height: isWide ? "100%" : `${panelHeight}vh`,
+        maxHeight: isWide ? "100%" : `${MAX_CHAT_HEIGHT}vh`,
+        borderRadius: isWide ? 0 : "28px 28px 0 0",
         background: theme === "dark"
-          ? "linear-gradient(to bottom, rgba(10, 10, 15, 0.78), rgba(5, 5, 5, 0.94))"
-          : "linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(248, 250, 252, 0.97))",
-        borderTop: "1px solid var(--border-color)",
-        boxShadow: "0 -10px 40px rgba(0, 0, 0, 0.25)",
+          ? "linear-gradient(to bottom, rgba(12, 14, 22, 0.92), rgba(6, 8, 14, 0.98))"
+          : "linear-gradient(to bottom, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98))",
+        borderTop: isWide ? undefined : `1px solid ${config.accentColor}33`,
+        borderLeft: isWide ? `1px solid ${config.accentColor}33` : undefined,
+        boxShadow: isWide
+          ? `-8px 0 32px rgba(0,0,0,0.25), 0 0 0 1px ${config.accentColor}11 inset`
+          : `0 -8px 40px rgba(0,0,0,0.2), 0 0 0 1px ${config.accentColor}11 inset`,
+        backdropFilter: "blur(20px)",
+        overflow: "hidden",
       }}
     >
-      <YearContextBanner year={year} accentColor={config.accentColor} theme={theme} />
-
-      <div className="shrink-0 px-4 py-2 flex items-center gap-2 border-b" style={{ borderColor: "var(--border-color-subtle)" }}>
-        <Target size={12} color={config.accentColor} />
-        <div className="flex-1 min-w-0">
-          <div className="font-mono text-[9px] tracking-widest uppercase" style={{ color: config.accentColor }}>
-            {missionComplete ? "Mission Complete" : mission.title}
-          </div>
-          <div className="text-[10px] truncate" style={{ color: "var(--text-secondary)" }}>{mission.goal}</div>
-        </div>
-        {missionComplete && <CheckCircle2 size={14} color={config.accentColor} />}
-        <button type="button" onClick={handleClearChat} title="Clear chat" className="p-1.5 rounded-md cursor-pointer" style={{ color: "var(--text-muted)", background: "var(--glass-bg)" }}>
-          <Trash2 size={12} />
+      {/* Resize handle — mobile/tablet bottom sheet only */}
+      {!isWide && (
+      <div
+        className="shrink-0 flex justify-center items-center gap-3 pt-2 pb-1 cursor-ns-resize touch-none select-none"
+        onPointerDown={onResizeStart}
+        onPointerMove={onResizeMove}
+        onPointerUp={onResizeEnd}
+        onPointerCancel={onResizeEnd}
+        title="Drag to resize · tap Expand for more space"
+      >
+        <div style={{ width: 40, height: 5, borderRadius: 4, background: `${config.accentColor}55` }} />
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); cyclePanelHeight(); }}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md cursor-pointer text-[9px] font-medium"
+          style={{ color: config.accentColor, background: `${config.accentColor}12` }}
+          title="Expand chat"
+        >
+          <Maximize2 size={10} />
+          {panelHeight >= 82 ? "Compact" : "Expand"}
         </button>
-      </div>
-
-      <div className="shrink-0 flex gap-2 px-4 py-2 overflow-x-auto border-b" style={{ borderColor: "var(--border-color-subtle)" }}>
-        {config.agents.map(agent => (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); setHeaderCompact(v => !v); }}
+          className="p-1 rounded-md cursor-pointer"
+          style={{ color: "var(--text-muted)" }}
+          title={headerCompact ? "Show details" : "Hide details"}
+        >
+          {headerCompact ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+        </button>
+        {headerCompact && (
           <button
-            key={agent.id}
             type="button"
-            onClick={() => setSelectedAgentId(agent.id)}
-            disabled={busy}
-            className="shrink-0 px-3 py-1 rounded-full font-mono text-[9px] tracking-wider uppercase cursor-pointer flex items-center gap-1.5"
-            style={{
-              background: selectedAgentId === agent.id ? `${agent.color}22` : "var(--glass-bg)",
-              border: `1px solid ${selectedAgentId === agent.id ? agent.color : "var(--border-color-subtle)"}`,
-              color: selectedAgentId === agent.id ? agent.color : "var(--text-secondary)",
-              opacity: busy ? 0.6 : 1,
-            }}
+            onClick={e => { e.stopPropagation(); handleClearChat(); }}
+            className="p-1 rounded-md cursor-pointer"
+            style={{ color: "var(--text-muted)" }}
+            title="Clear chat"
           >
-            <Avatar className="size-4">
-              <AvatarFallback
-                className="text-[10px]"
-                style={{ background: `${agent.color}22`, color: agent.color }}
-              >
-                {getAgentAvatar(config.id, agent.id)}
-              </AvatarFallback>
-            </Avatar>
-            {agent.name}
+            <Trash2 size={12} />
           </button>
-        ))}
+        )}
+      </div>
+      )}
+
+      {isWide && (
+        <div className="shrink-0 flex justify-end items-center gap-1 px-3 pt-3 pb-1">
+          <button
+            type="button"
+            onClick={() => setHeaderCompact(v => !v)}
+            className="p-1.5 rounded-md cursor-pointer"
+            style={{ color: "var(--text-muted)" }}
+            title={headerCompact ? "Show mission" : "Hide mission"}
+          >
+            {headerCompact ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={handleClearChat}
+            className="p-1.5 rounded-md cursor-pointer"
+            style={{ color: "var(--text-muted)" }}
+            title="Clear chat"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+
+      {!headerCompact && !hasConversation && (
+        <div
+          className="shrink-0 mx-4 mb-2 px-3 py-1.5 flex items-center gap-2 rounded-xl"
+          style={{
+            background: `${config.accentColor}10`,
+            border: `1px solid ${config.accentColor}25`,
+          }}
+        >
+          <Target size={12} color={config.accentColor} />
+          <div className="flex-1 min-w-0 text-[10px] truncate" style={{ color: missionComplete ? config.accentColor : "var(--text-secondary)" }}>
+            {missionComplete ? "✓ Mission complete" : `${mission.title} — ${mission.goal}`}
+          </div>
+          {missionComplete && <CheckCircle2 size={14} color={config.accentColor} />}
+          <button type="button" onClick={handleClearChat} title="Clear chat" className="p-1 rounded-lg cursor-pointer" style={{ color: "var(--text-muted)" }}>
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Compact character picker */}
+      <div className="shrink-0 flex gap-1.5 px-4 pb-2 overflow-x-auto">
+        {config.agents.map(agent => {
+          const active = selectedAgentId === agent.id;
+          const name = displayName(config, agent);
+          return (
+            <motion.button
+              key={agent.id}
+              type="button"
+              onClick={() => setSelectedAgentId(agent.id)}
+              disabled={busy}
+              whileTap={{ scale: 0.97 }}
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full cursor-pointer"
+              style={{
+                background: active ? `${agent.color}20` : theme === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                border: `1.5px solid ${active ? agent.color : "transparent"}`,
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              <CharacterAvatar emoji={getAgentAvatar(config.id, agent.id)} color={agent.color} size={26} active={active} />
+              <span className="text-[11px] font-medium" style={{ color: active ? agent.color : "var(--text-secondary)" }}>
+                {name}
+              </span>
+            </motion.button>
+          );
+        })}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+      {/* Messages — main scroll area */}
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3 min-h-0 overscroll-contain">
         {chatError && (
-          <div className="text-[10px] text-center py-1 px-2 rounded" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>{chatError}</div>
+          <div className="text-[11px] text-center py-2 px-3 rounded-xl" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>{chatError}</div>
         )}
         <AnimatePresence initial={false}>
           {messages.map(msg => (
-            <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.isUser ? "justify-end" : "justify-start"} group`}>
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex gap-2.5 ${msg.isUser ? "flex-row-reverse" : "flex-row"} group items-end`}
+            >
               {!msg.isUser && (
-                <Avatar className="size-6 shrink-0 mt-0.5">
-                  <AvatarFallback
-                    className="text-xs"
-                    style={{ background: `${msg.agentColor}22`, color: msg.agentColor }}
-                  >
-                    {getAgentAvatar(config.id, msg.agentId)}
-                  </AvatarFallback>
-                </Avatar>
+                <CharacterAvatar
+                  emoji={getAgentAvatar(config.id, msg.agentId)}
+                  color={msg.agentColor}
+                  size={36}
+                />
               )}
-              <div style={{ maxWidth: "90%" }}>
+              <div style={{ maxWidth: "82%", minWidth: 0 }}>
                 {!msg.isUser && (
-                  <div className="mb-1 font-mono text-[9px] tracking-widest uppercase" style={{ color: msg.agentColor }}>{msg.agentName}</div>
+                  <div className="mb-1 ml-1 text-[11px] font-semibold" style={{ color: msg.agentColor }}>
+                    {msg.agentName}
+                  </div>
                 )}
                 <div className="relative">
                   <ChatBubble
                     isUser={!!msg.isUser}
-                    background={msg.isUser ? (theme === "dark" ? "rgba(255,255,255,0.08)" : "#fff") : msg.bubbleColor}
-                    borderColor={msg.isUser ? "var(--border-color)" : msg.agentColor}
-                    shadowColor={msg.isUser ? "#2D3436" : msg.agentColor}
+                    accentColor={msg.isUser ? config.accentColor : msg.agentColor}
+                    theme={theme}
                   >
                     <span style={{ fontFamily: config.fontFamily }}>
                       {formatMessageText(msg.text)}
-                      {msg.streaming && <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>▍</motion.span>}
+                      {msg.streaming && (
+                        <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>▍</motion.span>
+                      )}
                     </span>
                   </ChatBubble>
                   {!msg.isUser && msg.text && !msg.streaming && (
-                    <button type="button" onClick={() => copyMessage(msg.text)} className="absolute -right-6 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer" style={{ color: "var(--text-muted)" }} title="Copy">
-                      <Copy size={10} />
+                    <button
+                      type="button"
+                      onClick={() => copyMessage(msg.text)}
+                      className="absolute -right-7 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md cursor-pointer"
+                      style={{ color: "var(--text-muted)" }}
+                      title="Copy"
+                    >
+                      <Copy size={11} />
                     </button>
                   )}
                 </div>
                 {msg.funFact && !msg.streaming && (
-                  <FunFactCard accentColor={config.accentColor}>
-                    <span style={{ color: config.accentColor, fontWeight: 700 }}>Did you know? </span>{msg.funFact}
+                  <FunFactCard accentColor={config.accentColor} theme={theme}>
+                    <span style={{ color: config.accentColor, fontWeight: 600 }}>Did you know? </span>
+                    {msg.funFact}
                   </FunFactCard>
                 )}
               </div>
             </motion.div>
           ))}
           {typingAgent && (
-            <div className="flex gap-2 justify-start items-end">
-              <Avatar className="size-6 shrink-0">
-                <AvatarFallback className="text-xs" style={{ background: `${selectedAgent.color}22`, color: selectedAgent.color }}>
-                  {getAgentAvatar(config.id, selectedAgent.id)}
-                </AvatarFallback>
-              </Avatar>
-              <TypingBubble
-                background={selectedAgent.bubbleColor}
-                borderColor={selectedAgent.color}
-                dotColor={selectedAgent.color}
+            <div className="flex gap-2.5 items-end">
+              <CharacterAvatar
+                emoji={getAgentAvatar(config.id, selectedAgent.id)}
+                color={selectedAgent.color}
+                size={36}
+                active
               />
+              <div>
+                <div className="mb-1 ml-1 text-[11px] font-semibold" style={{ color: selectedAgent.color }}>{typingAgent}</div>
+                <TypingBubble accentColor={selectedAgent.color} theme={theme} />
+              </div>
             </div>
           )}
         </AnimatePresence>
         <div ref={bottomRef} />
       </div>
 
+      {/* Suggestion chips */}
       {activeChips.length > 0 && (
         <div className="shrink-0 flex gap-2 px-4 pb-2 overflow-x-auto">
           {activeChips.map(chip => (
-            <motion.button key={chip} type="button" onClick={() => sendMessage(chip)} disabled={busy}
-              className="font-mono text-[10px] px-3 py-1 rounded-full whitespace-nowrap shrink-0 cursor-pointer"
-              style={{ background: `${config.accentColor}15`, border: `1px solid ${config.accentColor}44`, color: config.accentColor, opacity: busy ? 0.5 : 1 }}>
+            <motion.button
+              key={chip}
+              type="button"
+              onClick={() => sendMessage(chip)}
+              disabled={busy}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="text-[11px] px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0 cursor-pointer font-medium"
+              style={{
+                background: theme === "dark" ? `${config.accentColor}18` : `${config.accentColor}10`,
+                border: `1px solid ${config.accentColor}40`,
+                color: config.accentColor,
+                opacity: busy ? 0.5 : 1,
+              }}
+            >
               {chip}
             </motion.button>
           ))}
         </div>
       )}
 
-      <div className="shrink-0 flex items-center gap-2 px-4 pb-4 pt-2 border-t" style={{ borderColor: "var(--border-color-subtle)" }}>
-        <button onClick={onReturn} className="font-mono text-[10px] tracking-widest px-2.5 py-1.5 rounded-md cursor-pointer shrink-0" style={{ background: "var(--glass-bg)", border: "1px solid var(--border-color)" }}>← JUMP</button>
-        <div className="flex-1 flex items-center rounded-lg border px-3 py-1.5" style={{ background: theme === "dark" ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.6)", borderColor: "var(--border-color)" }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-            placeholder={`Ask ${selectedAgent.name} about ${formatYear(year)}…`} disabled={busy}
-            className="flex-1 bg-transparent outline-none min-w-0" style={{ color: "var(--text-primary)", fontSize: "13px", fontFamily: config.fontFamily }} />
+      {/* Input bar — sticky at bottom */}
+      <div
+        className="shrink-0 flex items-center gap-2 px-4 pb-4 pt-2.5"
+        style={{
+          borderTop: `1px solid ${config.accentColor}15`,
+          background: theme === "dark" ? "rgba(6,8,14,0.95)" : "rgba(248,250,252,0.98)",
+        }}
+      >
+        <button
+          onClick={onReturn}
+          className="text-[10px] font-medium px-3 py-2 rounded-xl cursor-pointer shrink-0"
+          style={{
+            background: theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+            color: "var(--text-secondary)",
+            border: "1px solid var(--border-color-subtle)",
+          }}
+        >
+          ← Jump
+        </button>
+
+        <div
+          className="flex-1 flex items-center gap-2 rounded-2xl px-3 py-2"
+          style={{
+            background: theme === "dark" ? "rgba(255,255,255,0.06)" : "#fff",
+            border: `1.5px solid ${config.accentColor}30`,
+            boxShadow: theme === "light" ? `0 2px 12px ${config.accentColor}10` : "none",
+          }}
+        >
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
+            placeholder={`Message ${displayName(config, selectedAgent)}…`}
+            disabled={busy}
+            className="flex-1 bg-transparent outline-none min-w-0"
+            style={{ color: "var(--text-primary)", fontSize: "14px", fontFamily: config.fontFamily }}
+          />
+          <button
+            type="button"
+            onClick={toggleListening}
+            className="p-1.5 rounded-lg cursor-pointer shrink-0"
+            style={{ color: isListening ? "#ef4444" : "var(--text-muted)" }}
+          >
+            <Mic size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setTtsEnabled(v => !v)}
+            className="p-1.5 rounded-lg cursor-pointer shrink-0"
+            style={{ color: ttsEnabled ? config.accentColor : "var(--text-muted)" }}
+          >
+            <Volume2 size={16} />
+          </button>
         </div>
-        <motion.button onClick={() => setTtsEnabled(v => !v)} className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shrink-0" style={{ background: ttsEnabled ? `${config.accentColor}22` : "var(--glass-bg)" }}>
-          <Volume2 size={13} color={ttsEnabled ? config.accentColor : "var(--text-muted)"} />
-        </motion.button>
-        <motion.button onClick={toggleListening} className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shrink-0" style={{ background: isListening ? "rgba(239,68,68,0.2)" : "var(--glass-bg)" }}>
-          <Mic size={13} color={isListening ? "#ef4444" : "var(--text-secondary)"} />
-        </motion.button>
-        <motion.button onClick={() => sendMessage(input)} disabled={!input.trim() || busy} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 cursor-pointer" style={{ background: input.trim() && !busy ? config.accentColor : "var(--glass-bg)" }}>
-          <ArrowUp size={13} color={input.trim() && !busy ? "#000" : "var(--text-muted)"} />
+
+        <motion.button
+          onClick={() => sendMessage(input)}
+          disabled={!input.trim() || busy}
+          whileHover={{ scale: input.trim() && !busy ? 1.05 : 1 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
+          style={{
+            background: input.trim() && !busy
+              ? `linear-gradient(135deg, ${config.accentColor}, ${config.accentColor}cc)`
+              : theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+            boxShadow: input.trim() && !busy ? `0 4px 14px ${config.accentColor}55` : "none",
+          }}
+        >
+          <ArrowUp size={18} color={input.trim() && !busy ? "#fff" : "var(--text-muted)"} strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>

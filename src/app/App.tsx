@@ -5,6 +5,7 @@ import { TravelAnimation } from "./components/TravelAnimation";
 import { EraScene } from "./components/EraScene";
 import { AgentChat } from "./components/AgentChat";
 import { getEraConfig, formatYear, type EraId } from "./components/era-config";
+import { useWideLayout } from "./hooks/useWideLayout";
 import { getIndiaBackgroundUrl } from "./components/india-content";
 import { startAmbient, stopAmbient, playArrivalSound } from "./components/sounds";
 import { fireStampCelebration, fireSouvenirCelebration, fireCompleteCollectionCelebration } from "./components/celebrations";
@@ -105,6 +106,7 @@ const SOUVENIRS: Record<string, Souvenir> = {
 };
 
 export default function App() {
+  const isWide = useWideLayout();
   const [phase, setPhase] = useState<Phase>("picker");
   const [year, setYear] = useState(2024);
   const [travelFromYear, setTravelFromYear] = useState(2024);
@@ -285,8 +287,12 @@ export default function App() {
 
             {/* Top bar — minimal, absolute */}
             <div
-              className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-4"
-              style={{ zIndex: 20, background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)" }}
+              className="absolute top-0 left-0 flex items-center justify-between px-5 py-4"
+              style={{
+                zIndex: 20,
+                right: isWide ? "min(440px, 42vw)" : 0,
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)",
+              }}
             >
               <div>
                 <div style={{

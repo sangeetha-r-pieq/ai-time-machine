@@ -1,6 +1,6 @@
 import type { EraId } from "./components/era-config";
 import type { AgentPersonality } from "./components/agent-personalities";
-import { INDIA_SYSTEM_LENS } from "./components/india-content";
+import { CONTENT_LENS } from "./components/india-content";
 
 export interface ChatHistoryItem {
   sender: string;
@@ -37,14 +37,13 @@ export interface ChatRequestContext {
 
 const MODEL_PRIMARY = "llama-3.3-70b-versatile";
 const MODEL_FALLBACK = "llama-3.1-8b-instant";
-const MAX_HISTORY_TURNS = 10;
+const MAX_HISTORY_TURNS = 8;
 
 const API_BASE = import.meta.env.DEV ? "/api/groq" : "https://api.groq.com";
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY ?? "";
 
-function trimHistory(history: ChatHistoryItem[], agentName: string): ChatHistoryItem[] {
-  const filtered = history.filter(h => h.isUser || h.sender === agentName);
-  return filtered.slice(-MAX_HISTORY_TURNS * 2);
+function trimHistory(history: ChatHistoryItem[]): ChatHistoryItem[] {
+  return history.slice(-MAX_HISTORY_TURNS * 2);
 }
 
 function buildSystemPrompt(ctx: ChatRequestContext): string {
@@ -56,58 +55,75 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
     ? `\nWhat you know about this time traveler from past journeys: ${ctx.travelerMemory.join("; ")}`
     : "";
 
-  return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}) on the Indian subcontinent.
+  return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}).
 
-${INDIA_SYSTEM_LENS}
+${CONTENT_LENS}
 
 PERSONALITY: ${ctx.personality.personality}
 SPEECH STYLE: ${ctx.personality.speechStyle}
 YOUR KNOWLEDGE: ${ctx.personality.knowledge}
 
-HISTORICAL CONTEXT FOR ${ctx.year} IN BHARAT:
+HISTORICAL CONTEXT FOR ${ctx.year} (India first, then global):
 ${ctx.yearHeadline} — ${ctx.yearDetail}${hotspots}${memory}
 
 ACTIVE MISSION: "${ctx.missionTitle}" — ${ctx.missionGoal}
 Set mission_complete to true only if the user's message genuinely engages with this mission topic (not just "hello").
 
-RULES:
-- Stay completely in character. Never mention being an AI.
-- reply: 2-3 sentences in character responding to the user.
-- fun_fact: one surprising historical fact about ${ctx.year} in India or the topic discussed.
-- follow_up_chips: 2 short questions the user might ask next (max 6 words each).
-- scene_reaction: one of none|fire|stars|snow|digital|spark based on topic (fire for war/fire, stars for space, etc.)
+CRITICAL — ANSWERING RULES:
+1. Read the user's LATEST message carefully. Your "reply" MUST directly address what they asked or said.
+2. Do NOT change topic, give unrelated history lectures, or ignore their question.
+3. Answer with an India-first lens: what was happening in Bharat, then how it connects to the wider world if relevant.
+4. Stay in character as ${ctx.agentName}. Never mention being an AI or JSON.
+5. If the question is unclear, ask one short clarifying question in character.
+
+OUTPUT FIELDS:
+- reply: 2-4 sentences directly answering the user's latest message (India first, global link optional).
+- fun_fact: one surprising fact — prefer India, add a global connection if it fits the topic.
+- follow_up_chips: 2 short follow-up questions the user might ask (max 6 words each).
+- scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
 
 Respond ONLY with valid JSON:
 {"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none"}`;
 }
 
 function buildMessages(ctx: ChatRequestContext) {
-  const trimmed = trimHistory(ctx.history, ctx.agentName);
+  const trimmed = trimHistory(ctx.history);
   const messages: { role: string; content: string }[] = [
     { role: "system", content: buildSystemPrompt(ctx) },
   ];
 
   for (const item of trimmed) {
-    if (item.isUser) {
-      messages.push({ role: "user", content: item.text });
-    } else {
-      messages.push({ role: "assistant", content: item.text });
-    }
+    messages.push({
+      role: item.isUser ? "user" : "assistant",
+      content: item.text,
+    });
   }
 
+  // Single user turn — history must NOT already contain ctx.question
   messages.push({ role: "user", content: ctx.question });
   return messages;
 }
 
 function parseResponse(raw: string): ChatResponse {
-  const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-  const parsed = JSON.parse(cleaned);
+  let cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+  let parsed: Record<string, unknown>;
+
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in response");
+    parsed = JSON.parse(match[0]);
+  }
+
   return {
-    reply: parsed.reply ?? "...",
-    fun_fact: parsed.fun_fact ?? "",
+    reply: String(parsed.reply ?? "..."),
+    fun_fact: String(parsed.fun_fact ?? ""),
     mission_complete: Boolean(parsed.mission_complete),
-    follow_up_chips: Array.isArray(parsed.follow_up_chips) ? parsed.follow_up_chips.slice(0, 3) : [],
-    scene_reaction: parsed.scene_reaction ?? "none",
+    follow_up_chips: Array.isArray(parsed.follow_up_chips)
+      ? parsed.follow_up_chips.slice(0, 3).map(String)
+      : [],
+    scene_reaction: (parsed.scene_reaction as ChatResponse["scene_reaction"]) ?? "none",
   };
 }
 
@@ -129,7 +145,8 @@ async function callGroq(messages: { role: string; content: string }[], model: st
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0.75,
+      temperature: 0.55,
+      max_tokens: 600,
       response_format: { type: "json_object" },
     }),
   });
@@ -173,7 +190,7 @@ export async function streamReplyText(
     const tick = () => {
       i = Math.min(text.length, i + charsPerTick);
       onChunk(text.slice(0, i));
-      if ( i >= text.length) resolve();
+      if (i >= text.length) resolve();
       else setTimeout(tick, ms);
     };
     tick();

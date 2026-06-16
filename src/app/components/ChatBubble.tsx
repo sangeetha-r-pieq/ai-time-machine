@@ -1,83 +1,84 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
-
-const OUTLINE = "#2D3436";
+import { Sparkles } from "lucide-react";
 
 interface ChatBubbleProps {
   isUser: boolean;
-  background: string;
-  borderColor: string;
-  shadowColor?: string;
+  accentColor: string;
+  theme: "light" | "dark";
   children: ReactNode;
 }
 
-export function ChatBubble({ isUser, background, borderColor, shadowColor = OUTLINE, children }: ChatBubbleProps) {
-  return (
-    <div className={`relative ${isUser ? "ml-2" : "mr-2"}`}>
-      {/* Comic tail */}
-      <div
-        className="absolute bottom-2"
-        style={{
-          [isUser ? "right" : "left"]: -6,
-          width: 0,
-          height: 0,
-          borderTop: "8px solid transparent",
-          borderBottom: "8px solid transparent",
-          ...(isUser
-            ? { borderLeft: `10px solid ${borderColor}` }
-            : { borderRight: `10px solid ${borderColor}` }),
-        }}
-      />
-      <div
-        className="absolute bottom-2.5"
-        style={{
-          [isUser ? "right" : "left"]: -3,
-          width: 0,
-          height: 0,
-          borderTop: "6px solid transparent",
-          borderBottom: "6px solid transparent",
-          ...(isUser
-            ? { borderLeft: `8px solid ${background}` }
-            : { borderRight: `8px solid ${background}` }),
-        }}
-      />
+export function ChatBubble({ isUser, accentColor, theme, children }: ChatBubbleProps) {
+  const isDark = theme === "dark";
 
+  if (isUser) {
+    return (
       <div
         style={{
-          padding: "10px 14px",
-          borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-          background,
-          border: `2px solid ${borderColor}`,
-          boxShadow: `3px 3px 0 ${shadowColor}`,
-          color: "var(--text-primary)",
-          fontSize: "13px",
-          lineHeight: 1.65,
+          padding: "11px 16px",
+          borderRadius: "20px 20px 6px 20px",
+          background: `linear-gradient(135deg, ${accentColor}ee, ${accentColor}bb)`,
+          color: "#fff",
+          fontSize: "14px",
+          lineHeight: 1.6,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
+          boxShadow: `0 4px 16px ${accentColor}44`,
+          maxWidth: "100%",
         }}
       >
         {children}
       </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        padding: "11px 16px",
+        borderRadius: "20px 20px 20px 6px",
+        background: isDark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.92)",
+        border: isDark ? `1px solid ${accentColor}33` : `1px solid ${accentColor}22`,
+        borderLeft: `3px solid ${accentColor}`,
+        color: "var(--text-primary)",
+        fontSize: "14px",
+        lineHeight: 1.6,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        boxShadow: isDark
+          ? "0 4px 24px rgba(0,0,0,0.25)"
+          : `0 4px 20px ${accentColor}12, 0 1px 3px rgba(0,0,0,0.06)`,
+        backdropFilter: "blur(8px)",
+        maxWidth: "100%",
+      }}
+    >
+      {children}
     </div>
   );
 }
 
 interface TypingBubbleProps {
-  background: string;
-  borderColor: string;
-  dotColor: string;
+  accentColor: string;
+  theme: "light" | "dark";
 }
 
-export function TypingBubble({ background, borderColor, dotColor }: TypingBubbleProps) {
+export function TypingBubble({ accentColor, theme }: TypingBubbleProps) {
   return (
-    <ChatBubble isUser={false} background={background} borderColor={borderColor}>
-      <div className="flex gap-1.5 items-center h-5 px-1">
+    <ChatBubble isUser={false} accentColor={accentColor} theme={theme}>
+      <div className="flex gap-1.5 items-center h-5 px-0.5">
         {[0, 1, 2].map(i => (
           <motion.div
             key={i}
-            style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, border: `1.5px solid ${OUTLINE}` }}
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 0.55, repeat: Infinity, delay: i * 0.14 }}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: accentColor,
+              opacity: 0.7,
+            }}
+            animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
           />
         ))}
       </div>
@@ -87,23 +88,60 @@ export function TypingBubble({ background, borderColor, dotColor }: TypingBubble
 
 interface FunFactCardProps {
   accentColor: string;
+  theme: "light" | "dark";
   children: ReactNode;
 }
 
-export function FunFactCard({ accentColor, children }: FunFactCardProps) {
+export function FunFactCard({ accentColor, theme, children }: FunFactCardProps) {
+  const isDark = theme === "dark";
   return (
-    <div
-      className="mt-2 px-3 py-2 text-[10px] leading-relaxed"
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-2 flex gap-2 items-start px-3 py-2.5 rounded-xl text-[12px] leading-relaxed"
       style={{
-        background: "#FFFDE7",
-        border: `2px solid ${accentColor}`,
-        boxShadow: `2px 2px 0 ${OUTLINE}`,
-        borderRadius: "4px 12px 12px 12px",
-        color: "#37474F",
-        transform: "rotate(-0.5deg)",
+        background: isDark
+          ? `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`
+          : `linear-gradient(135deg, ${accentColor}12, #fffef5)`,
+        border: `1px solid ${accentColor}33`,
+        color: "var(--text-secondary)",
       }}
     >
-      {children}
+      <Sparkles size={14} style={{ color: accentColor, flexShrink: 0, marginTop: 1 }} />
+      <div>{children}</div>
+    </motion.div>
+  );
+}
+
+/** Large character avatar for message rows */
+export function CharacterAvatar({
+  emoji,
+  color,
+  size = 40,
+  active,
+}: {
+  emoji: string;
+  color: string;
+  size?: number;
+  active?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.45,
+        background: `linear-gradient(145deg, ${color}28, ${color}12)`,
+        border: `2px solid ${active ? color : `${color}55`}`,
+        boxShadow: active ? `0 0 12px ${color}44` : `0 2px 8px ${color}22`,
+        flexShrink: 0,
+      }}
+    >
+      {emoji}
     </div>
   );
 }

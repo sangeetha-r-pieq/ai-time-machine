@@ -283,7 +283,7 @@ export function YearPicker({
               letterSpacing: "0.03em",
             }}
           >
-            Bharat Through Time
+            India First · Stories of the World
           </p>
         </motion.div>
 
