@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { type EraConfig } from "./era-config";
 import { ERA_HOTSPOTS } from "./era-hotspots";
@@ -312,14 +312,19 @@ interface Props {
   config: EraConfig;
   year: number;
   isTalking?: boolean;
+  sceneReaction?: number;
   onHotspotLore?: (lore: string) => void;
 }
 
-export function EraScene({ config, year, isTalking = false, onHotspotLore }: Props) {
+export function EraScene({ config, year, isTalking = false, sceneReaction = 0, onHotspotLore }: Props) {
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
   const [particleBurst, setParticleBurst] = useState(0);
   const [personWave, setPersonWave] = useState(false);
+
+  useEffect(() => {
+    if (sceneReaction > 0) setParticleBurst(b => b + 2);
+  }, [sceneReaction]);
 
   const hotspots = ERA_HOTSPOTS[config.id] ?? [];
 

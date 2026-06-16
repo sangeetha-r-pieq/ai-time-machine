@@ -26,11 +26,25 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
   },
 
-  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
+  server: {
+    proxy: {
+      '/api/groq': {
+        target: 'https://api.groq.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/groq/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            const key = process.env.GROQ_API_KEY;
+            if (key) proxyReq.setHeader('Authorization', `Bearer ${key}`);
+          });
+        },
+      },
+    },
+  },
+
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

@@ -109,6 +109,7 @@ export default function App() {
   const [year, setYear] = useState(2024);
   const [travelFromYear, setTravelFromYear] = useState(2024);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
+  const [sceneReaction, setSceneReaction] = useState(0);
   const [souvenirReveal, setSouvenirReveal] = useState<Souvenir | null>(null);
   const ambientRunning = useRef(false);
 
@@ -275,7 +276,7 @@ export default function App() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}>
 
-            <EraScene config={config} year={year} isTalking={agentSpeaking} />
+            <EraScene config={config} year={year} isTalking={agentSpeaking} sceneReaction={sceneReaction} />
 
             {/* Top bar — minimal, absolute */}
             <div
@@ -330,6 +331,7 @@ export default function App() {
               onReturn={handleReturn}
               onAwardSouvenir={handleAwardSouvenir}
               onAgentSpeaking={setAgentSpeaking}
+              onSceneReaction={() => setSceneReaction(n => n + 1)}
               theme={theme}
             />
           </motion.div>
