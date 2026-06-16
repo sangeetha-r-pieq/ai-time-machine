@@ -6,11 +6,11 @@ import './index.css';
 function App() {
   const [topic, setTopic] = useState<string>('');
   const [year, setYear] = useState<string>('');
-  const API_KEY = "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";
+  const API_KEY = "ur api key";
   const [loading, setLoading] = useState<boolean>(false);
   const [result, setResult] = useState<TimeJumpResult | null>(null);
   const [error, setError] = useState<string>('');
-  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string, image?: string, prompt?: string}>>([]);
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string, image?: string, prompt?: string }>>([]);
 
   useEffect(() => {
     if (result && result.ui_theme) {
@@ -106,25 +106,25 @@ function App() {
       {result && !loading && (
         <div className="display-area">
           <div className="visual-panel">
-            <img 
-              src={getImageUrl(result.image_prompt)} 
-              alt="Era visualization" 
+            <img
+              src={getImageUrl(result.image_prompt)}
+              alt="Era visualization"
               className="generated-image"
               loading="lazy"
             />
             <p className="image-prompt">Prompt: {result.image_prompt}</p>
           </div>
-          
+
           <div className="glass-panel data-panel">
             <div className="category-badge">
-               {result.category === 'actor' && <Star size={14} />}
-               {result.category}
+              {result.category === 'actor' && <Star size={14} />}
+              {result.category}
             </div>
-            
+
             <p className="main-text">"{result.main_reply}"</p>
-            
+
             <div className="fun-fact-box">
-              <Info size={18} style={{float: 'left', marginRight: '10px', color: 'var(--accent-2)'}}/>
+              <Info size={18} style={{ float: 'left', marginRight: '10px', color: 'var(--accent-2)' }} />
               {result.fun_fact}
             </div>
 
