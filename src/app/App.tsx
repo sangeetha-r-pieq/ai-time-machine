@@ -5,7 +5,7 @@ import { TravelAnimation } from "./components/TravelAnimation";
 import { EraScene } from "./components/EraScene";
 import { AgentChat } from "./components/AgentChat";
 import { getEraConfig, formatYear, type EraId } from "./components/era-config";
-import { getYearContext } from "./components/year-context";
+import { getIndiaBackgroundUrl } from "./components/india-content";
 import { startAmbient, stopAmbient, playArrivalSound } from "./components/sounds";
 import { fireStampCelebration, fireSouvenirCelebration, fireCompleteCollectionCelebration } from "./components/celebrations";
 import { X, Lock, Compass } from "lucide-react";
@@ -24,83 +24,83 @@ interface Souvenir {
 const SOUVENIRS: Record<string, Souvenir> = {
   prehistoric: {
     id: "prehistoric",
-    name: "Mammoth Ivory Flute",
-    emoji: "🦴",
+    name: "Bhimbetka Cave Painting Rubbing",
+    emoji: "🎨",
     eraId: "prehistoric",
-    eraName: "Prehistoric Era",
-    description: "A primitive flute carved from woolly mammoth ivory, capable of producing haunting wind notes."
+    eraName: "Prehistoric Bharat",
+    description: "A charcoal rubbing from a 10,000-year-old hunting scene at Bhimbetka, Madhya Pradesh."
   },
   ancient: {
     id: "ancient",
-    name: "Golden Scarab Amulet",
-    emoji: "🪲",
+    name: "Indus Unicorn Seal",
+    emoji: "🦭",
     eraId: "ancient",
-    eraName: "Ancient World",
-    description: "A beautifully detailed lapis lazuli and gold scarab from Memphis, inscribed with protection spells."
+    eraName: "Indus Valley Era",
+    description: "A steatite seal from Mohenjo-daro depicting the mysterious unicorn — script still undeciphered."
   },
   classical: {
     id: "classical",
-    name: "Socratic Scroll Fragment",
-    emoji: "📜",
+    name: "Ashoka Chakra Fragment",
+    emoji: "☸️",
     eraId: "classical",
-    eraName: "Classical Antiquity",
-    description: "A charred fragment of papyrus detailing an unrecorded dialogue between Socrates and Nikias on virtue."
+    eraName: "Classical India",
+    description: "A stone fragment from a Mauryan pillar — the chakra that would one day fly on India's flag."
   },
   medieval: {
     id: "medieval",
-    name: "Illuminated Codex Page",
-    emoji: "⛪",
+    name: "Vijayanagara Gold Coin",
+    emoji: "🪙",
     eraId: "medieval",
-    eraName: "Medieval Era",
-    description: "A stunning hand-copied parchment leaf featuring gold leaf decorations and intricate gothic script."
+    eraName: "Medieval India",
+    description: "A pagoda coin from Hampi's bustling bazaar — trade with Persia, Portugal, and China."
   },
   industrial: {
     id: "industrial",
-    name: "Brass Pocket Sextant",
-    emoji: "🧭",
+    name: "1853 Railway Ticket",
+    emoji: "🚂",
     eraId: "industrial",
-    eraName: "Industrial Era",
-    description: "A heavy, hand-engraved brass instrument representing the height of 19th-century navigation technology."
+    eraName: "Colonial Era",
+    description: "A first-class ticket from Bombay to Thane — India's first passenger train journey."
   },
   wartime: {
     id: "wartime",
-    name: "Morse Code Telegraph Key",
-    emoji: "📻",
+    name: "Quit India Pamphlet",
+    emoji: "🇮🇳",
     eraId: "wartime",
-    eraName: "World Wars Era",
-    description: "A robust military telegraph key showing signs of heavy wartime use in radio transmissions."
+    eraName: "Freedom Struggle",
+    description: "A banned pamphlet from 1942 bearing Gandhi's call — 'Do or Die.'"
   },
   analog: {
     id: "analog",
-    name: "Apollo 11 Space Pen",
-    emoji: "🖊️",
+    name: "ISRO Rocket Model",
+    emoji: "🚀",
     eraId: "analog",
-    eraName: "Post-War & Space Age",
-    description: "A pressurized space pen that writes in zero gravity, given to you by a NASA technician in Houston."
+    eraName: "Space Age India",
+    description: "A miniature SLV-3 rocket — the vehicle that launched Rohini, India's first satellite."
   },
   digital: {
     id: "digital",
-    name: "Original Floppy Disk",
+    name: "Bangalore Startup Floppy",
     emoji: "💾",
     eraId: "digital",
-    eraName: "Digital Age",
-    description: "A 3.5-inch floppy disk labeled 'WWW Source Code - v0.1'. An absolute relic of the early web."
+    eraName: "IT Revolution",
+    description: "A floppy disk labeled 'Y2K Patch v1.0' from an early Infosys development team."
   },
   present: {
     id: "present",
-    name: "Hardware Crypto Wallet",
-    emoji: "🔑",
+    name: "UPI QR Charm",
+    emoji: "📱",
     eraId: "present",
-    eraName: "Present Day",
-    description: "A hardware wallet containing early digital assets, a true artifact of the decentralized financial era."
+    eraName: "Digital Bharat",
+    description: "A ceremonial QR code pendant — symbol of a billion instant digital payments."
   },
   future: {
     id: "future",
-    name: "Quantum Nano-Battery",
-    emoji: "🔋",
+    name: "Gaganyaan Mission Patch",
+    emoji: "🌙",
     eraId: "future",
-    eraName: "The Future",
-    description: "A tiny battery that harnesses zero-point energy, humming with near-infinite power."
+    eraName: "Future Bharat",
+    description: "An embroidered patch from India's first permanent lunar research habitat."
   }
 };
 
@@ -168,7 +168,6 @@ export default function App() {
   }, [theme]);
 
   const config = getEraConfig(year);
-  const yearContext = getYearContext(year);
 
   const handleJump = (y: number) => {
     setTravelFromYear(year);
@@ -276,7 +275,13 @@ export default function App() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}>
 
-            <EraScene config={config} year={year} isTalking={agentSpeaking} sceneReaction={sceneReaction} />
+            <EraScene
+              config={config}
+              year={year}
+              backgroundUrl={getIndiaBackgroundUrl(config.id, year)}
+              isTalking={agentSpeaking}
+              sceneReaction={sceneReaction}
+            />
 
             {/* Top bar — minimal, absolute */}
             <div
@@ -297,20 +302,6 @@ export default function App() {
                   style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: config.accentColor, marginTop: 2 }}
                 >
                   {config.name.toUpperCase()} · {config.period}
-                </motion.div>
-                <motion.div
-                  key={`ctx-${year}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    fontSize: "11px",
-                    lineHeight: 1.45,
-                    color: "rgba(255,255,255,0.75)",
-                    marginTop: 6,
-                    maxWidth: 340,
-                  }}
-                >
-                  {yearContext.emoji} {yearContext.detail}
                 </motion.div>
               </div>
 

@@ -1,5 +1,6 @@
 import type { EraId } from "./components/era-config";
 import type { AgentPersonality } from "./components/agent-personalities";
+import { INDIA_SYSTEM_LENS } from "./components/india-content";
 
 export interface ChatHistoryItem {
   sender: string;
@@ -55,13 +56,15 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
     ? `\nWhat you know about this time traveler from past journeys: ${ctx.travelerMemory.join("; ")}`
     : "";
 
-  return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}).
+  return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}) on the Indian subcontinent.
+
+${INDIA_SYSTEM_LENS}
 
 PERSONALITY: ${ctx.personality.personality}
 SPEECH STYLE: ${ctx.personality.speechStyle}
 YOUR KNOWLEDGE: ${ctx.personality.knowledge}
 
-HISTORICAL CONTEXT FOR ${ctx.year}:
+HISTORICAL CONTEXT FOR ${ctx.year} IN BHARAT:
 ${ctx.yearHeadline} — ${ctx.yearDetail}${hotspots}${memory}
 
 ACTIVE MISSION: "${ctx.missionTitle}" — ${ctx.missionGoal}
@@ -70,7 +73,7 @@ Set mission_complete to true only if the user's message genuinely engages with t
 RULES:
 - Stay completely in character. Never mention being an AI.
 - reply: 2-3 sentences in character responding to the user.
-- fun_fact: one surprising historical fact about ${ctx.year} or the topic discussed.
+- fun_fact: one surprising historical fact about ${ctx.year} in India or the topic discussed.
 - follow_up_chips: 2 short questions the user might ask next (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic (fire for war/fire, stars for space, etc.)
 

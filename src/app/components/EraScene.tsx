@@ -311,12 +311,13 @@ function PersonSilhouette({ variant }: { variant: PersonVariant }) {
 interface Props {
   config: EraConfig;
   year: number;
+  backgroundUrl?: string;
   isTalking?: boolean;
   sceneReaction?: number;
   onHotspotLore?: (lore: string) => void;
 }
 
-export function EraScene({ config, year, isTalking = false, sceneReaction = 0, onHotspotLore }: Props) {
+export function EraScene({ config, year, backgroundUrl, isTalking = false, sceneReaction = 0, onHotspotLore }: Props) {
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
   const [particleBurst, setParticleBurst] = useState(0);
@@ -369,10 +370,25 @@ export function EraScene({ config, year, isTalking = false, sceneReaction = 0, o
       style={{ zIndex: 0 }}
       onMouseMove={handleMouseMove}
     >
-      {/* Sky — clickable for particle burst */}
+      {/* AI-generated India background */}
+      {backgroundUrl && (
+        <img
+          src={backgroundUrl}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+      )}
+
+      {/* Sky — clickable for particle burst; tinted overlay when AI bg present */}
       <div
         className="absolute inset-0 cursor-crosshair"
-        style={{ background: config.skyGradient }}
+        style={{
+          background: config.skyGradient,
+          opacity: backgroundUrl ? 0.45 : 1,
+          zIndex: 1,
+        }}
         onClick={handleSkyClick}
       />
 
@@ -389,7 +405,7 @@ export function EraScene({ config, year, isTalking = false, sceneReaction = 0, o
       {/* Horizon silhouettes — bottom 30% of scene */}
       <motion.div
         className="absolute left-0 right-0 pointer-events-none"
-        style={{ bottom: "22%", height: "30%" }}
+        style={{ bottom: "22%", height: "30%", opacity: backgroundUrl ? 0.55 : 1, zIndex: 2 }}
         animate={{ x: parallax.x * 0.6, y: parallax.y * 0.4 }}
         transition={{ type: "spring", stiffness: 80, damping: 20 }}
       >

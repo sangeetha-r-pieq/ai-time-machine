@@ -5,8 +5,11 @@ import { type EraConfig, type Agent, formatYear } from "./era-config";
 import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS } from "./era-hotspots";
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
+import { getAgentAvatar } from "./india-content";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import { getYearContext } from "./year-context";
 import { loadChat, saveChat, clearChat, type StoredMessage } from "./chat-storage";
+import { YearContextBanner } from "./YearContextBanner";
 import { formatMessageText } from "./message-format";
 import { playPingSound } from "./sounds";
 import { playVoice, stopVoice } from "./voice";
@@ -292,7 +295,7 @@ export function AgentChat({
       className="absolute left-0 right-0 bottom-0 flex flex-col rounded-t-3xl backdrop-blur-md"
       style={{
         zIndex: 10,
-        height: "48%",
+        height: "52%",
         maxWidth: 680,
         margin: "0 auto",
         background: theme === "dark"
@@ -302,6 +305,8 @@ export function AgentChat({
         boxShadow: "0 -10px 40px rgba(0, 0, 0, 0.25)",
       }}
     >
+      <YearContextBanner year={year} accentColor={config.accentColor} theme={theme} />
+
       <div className="shrink-0 px-4 py-2 flex items-center gap-2 border-b" style={{ borderColor: "var(--border-color-subtle)" }}>
         <Target size={12} color={config.accentColor} />
         <div className="flex-1 min-w-0">
@@ -323,7 +328,7 @@ export function AgentChat({
             type="button"
             onClick={() => setSelectedAgentId(agent.id)}
             disabled={busy}
-            className="shrink-0 px-3 py-1 rounded-full font-mono text-[9px] tracking-wider uppercase cursor-pointer"
+            className="shrink-0 px-3 py-1 rounded-full font-mono text-[9px] tracking-wider uppercase cursor-pointer flex items-center gap-1.5"
             style={{
               background: selectedAgentId === agent.id ? `${agent.color}22` : "var(--glass-bg)",
               border: `1px solid ${selectedAgentId === agent.id ? agent.color : "var(--border-color-subtle)"}`,
@@ -331,6 +336,14 @@ export function AgentChat({
               opacity: busy ? 0.6 : 1,
             }}
           >
+            <Avatar className="size-4">
+              <AvatarFallback
+                className="text-[10px]"
+                style={{ background: `${agent.color}22`, color: agent.color }}
+              >
+                {getAgentAvatar(config.id, agent.id)}
+              </AvatarFallback>
+            </Avatar>
             {agent.name}
           </button>
         ))}
@@ -342,7 +355,17 @@ export function AgentChat({
         )}
         <AnimatePresence initial={false}>
           {messages.map(msg => (
-            <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.isUser ? "justify-end" : "justify-start"} group`}>
+            <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.isUser ? "justify-end" : "justify-start"} group`}>
+              {!msg.isUser && (
+                <Avatar className="size-6 shrink-0 mt-0.5">
+                  <AvatarFallback
+                    className="text-xs"
+                    style={{ background: `${msg.agentColor}22`, color: msg.agentColor }}
+                  >
+                    {getAgentAvatar(config.id, msg.agentId)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <div style={{ maxWidth: "90%" }}>
                 {!msg.isUser && (
                   <div className="mb-1 font-mono text-[9px] tracking-widest uppercase" style={{ color: msg.agentColor }}>{msg.agentName}</div>

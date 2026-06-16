@@ -2,23 +2,20 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronUp, ChevronDown, Zap, Sun, Moon, BookOpen } from "lucide-react";
 import { getEraConfig, formatYear, parseYear } from "./era-config";
-import { getYearContext } from "./year-context";
 import { SceneParticles } from "./SceneParticles";
 import { playPingSound } from "./sounds";
 
 const PRESETS = [
   { label: "10,000 BC", year: -10000 },
-  { label: "2,560 BC", year: -2560 },
-  { label: "44 BC", year: -44 },
-  { label: "1066 AD", year: 1066 },
-  { label: "1348 AD", year: 1348 },
-  { label: "1776 AD", year: 1776 },
-  { label: "1944 AD", year: 1944 },
+  { label: "2500 BC", year: -2500 },
+  { label: "322 BC", year: -322 },
+  { label: "1526 AD", year: 1526 },
+  { label: "1857 AD", year: 1857 },
+  { label: "1947 AD", year: 1947 },
   { label: "1969 AD", year: 1969 },
   { label: "1991 AD", year: 1991 },
   { label: "2024 AD", year: 2024 },
   { label: "2075 AD", year: 2075 },
-  { label: "2150 AD", year: 2150 },
 ];
 
 interface Props {
@@ -41,7 +38,6 @@ export function YearPicker({
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const era = getEraConfig(year);
-  const yearContext = getYearContext(year);
 
   const step = (delta: number) => {
     const abs = Math.abs(year);
@@ -69,35 +65,56 @@ export function YearPicker({
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center relative overflow-hidden" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
-      {/* Live era preview background */}
+      {/* Live era preview background — theme-aware so light mode stays bright */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={era.id}
+          key={`${era.id}-${theme}`}
           className="fixed inset-0 pointer-events-none"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.35 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="absolute inset-0" style={{ background: era.skyGradient }} />
-          {era.atmosphereColor && (
-            <div className="absolute inset-0" style={{ background: era.atmosphereColor }} />
+          {theme === "light" ? (
+            <>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(165deg, ${era.accentColor}18 0%, #ffffff 35%, #f8fafc 65%, ${era.accentColor}10 100%)`,
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{ background: era.skyGradient, opacity: 0.06 }}
+              />
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0" style={{ background: era.skyGradient }} />
+              {era.atmosphereColor && (
+                <div className="absolute inset-0" style={{ background: era.atmosphereColor }} />
+              )}
+            </>
           )}
           <SceneParticles type={era.particleType} color={era.particleColor} />
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to bottom, transparent 40%, var(--background) 100%)" }}
+            style={{
+              background: theme === "light"
+                ? "linear-gradient(to bottom, transparent 55%, rgba(248,250,252,0.85) 100%)"
+                : "linear-gradient(to bottom, transparent 40%, var(--background) 100%)",
+            }}
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* Subtle accent radial */}
+      {/* Accent radial glow */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
           background: theme === "dark"
-            ? `radial-gradient(ellipse 50% 40% at 50% 60%, ${era.accentColor}18, transparent)`
-            : `radial-gradient(ellipse 50% 40% at 50% 60%, ${era.accentColor}12, transparent)`
+            ? `radial-gradient(ellipse 55% 45% at 50% 45%, ${era.accentColor}22, transparent)`
+            : `radial-gradient(ellipse 60% 50% at 50% 40%, ${era.accentColor}20, transparent 70%)`,
         }}
       />
 
@@ -107,17 +124,30 @@ export function YearPicker({
         style={{ borderBottom: "1px solid var(--border-color-subtle)" }}
       >
         {/* Wordmark (Left) */}
-        <div
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: "11px",
-            letterSpacing: "0.25em",
-            color: "var(--text-primary)",
-            textTransform: "uppercase",
-            fontWeight: 500,
-          }}
-        >
-          CHRONOS
+        <div>
+          <div
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "10px",
+              letterSpacing: "0.14em",
+              color: "var(--text-primary)",
+              textTransform: "uppercase",
+              fontWeight: 500,
+            }}
+          >
+            AI Time Machine
+          </div>
+          <div
+            style={{
+              fontFamily: era.fontFamily,
+              fontSize: "10px",
+              color: "var(--text-muted)",
+              marginTop: 2,
+              letterSpacing: "0.04em",
+            }}
+          >
+            Bharat Through Time
+          </div>
         </div>
 
         {/* Dashboard & Theme Actions (Right) */}
@@ -183,53 +213,9 @@ export function YearPicker({
         </div>
       </div>
 
-      {/* Year context banner */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${year}-${yearContext.headline}`}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.25 }}
-          className="absolute left-0 right-0 z-20 px-5"
-          style={{ top: 72 }}
-        >
-          <div
-            className="mx-auto max-w-lg px-4 py-3 rounded-xl text-center"
-            style={{
-              background: theme === "dark" ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.75)",
-              border: `1px solid ${era.accentColor}44`,
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "10px",
-                letterSpacing: "0.12em",
-                color: era.accentColor,
-                textTransform: "uppercase",
-                marginBottom: 4,
-              }}
-            >
-              {yearContext.emoji} {yearContext.headline}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                lineHeight: 1.55,
-                color: "var(--text-secondary)",
-              }}
-            >
-              {yearContext.detail}
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
       {/* Year selector */}
       <motion.div
-        className="flex flex-col items-center gap-5 relative z-10 mt-16"
+        className="flex flex-col items-center gap-5 relative z-10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}

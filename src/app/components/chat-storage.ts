@@ -17,7 +17,7 @@ export interface StoredChat {
   selectedAgentId: string;
 }
 
-const PREFIX = "chronos-chat-";
+const PREFIX = "ai-time-machine-chat-";
 
 export function loadChat(eraId: EraId): StoredChat | null {
   try {
