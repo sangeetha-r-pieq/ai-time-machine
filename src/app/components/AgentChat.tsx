@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Mic, Volume2 } from "lucide-react";
 import { type EraConfig, type Agent, formatYear } from "./era-config";
+import { ERA_PROMPT_CHIPS } from "./era-hotspots";
 import { playPingSound } from "./sounds";
+import { playVoice, stopVoice } from "./voice";
+import { fetchGroqReply, type ChatHistoryItem } from "../api";
 
 interface Message {
   id: string;
@@ -14,12 +17,13 @@ interface Message {
   isUser?: boolean;
 }
 
-import { fetchGroqReply } from "../api";
-
-async function getAgentReply(agent: Agent, year: number, question: string): Promise<string> {
-  // If it matches a strict trigger, we can optionally still use the fast local fallback,
-  // but to use AI we'll just call Groq.
-  const aiReply = await fetchGroqReply(agent.name, agent.role, year, question);
+async function getAgentReply(
+  agent: Agent,
+  year: number,
+  question: string,
+  history: ChatHistoryItem[] = []
+): Promise<string> {
+  const aiReply = await fetchGroqReply(agent.name, agent.role, year, question, history);
   if (aiReply !== "...") return aiReply;
   
   // Fallback if Groq fails
@@ -34,14 +38,70 @@ interface Props {
   config: EraConfig;
   year: number;
   onReturn: () => void;
+  onAwardSouvenir?: (eraId: string) => void;
+  onAgentSpeaking?: (speaking: boolean) => void;
+  theme: "light" | "dark";
 }
 
-export function AgentChat({ config, year, onReturn }: Props) {
+export function AgentChat({ config, year, onReturn, onAwardSouvenir, onAgentSpeaking, theme }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevEra = useRef(config.id);
+  const speakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const promptChips = ERA_PROMPT_CHIPS[config.id] ?? [];
+
+  // Voice Recognition states
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in this browser. Try Chrome or Safari.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+  };
 
   // Arrival message when era changes
   useEffect(() => {
@@ -50,8 +110,6 @@ export function AgentChat({ config, year, onReturn }: Props) {
       prevEra.current = config.id;
     }
     const primary = config.agents[0];
-    const arrival = primary.responses[0]?.reply ?? primary.fallback[0];
-    // Use fallback as arrival message (first fallback is often introductory)
     const introMsg: Message = {
       id: `arrival-${config.id}`,
       agentId: primary.id,
@@ -66,43 +124,68 @@ export function AgentChat({ config, year, onReturn }: Props) {
     }, 700);
   }, [config.id]);
 
+  // Award souvenir after the user sends their first message and a response is received
+  const userMessageCount = messages.filter(m => m.isUser).length;
+  useEffect(() => {
+    if (userMessageCount >= 1 && onAwardSouvenir) {
+      const timer = setTimeout(() => {
+        onAwardSouvenir(config.id);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [userMessageCount, config.id, onAwardSouvenir]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
 
-  const send = () => {
-    const text = input.trim();
-    if (!text || busy) return;
+  useEffect(() => () => {
+    stopVoice();
+    if (speakingTimer.current) clearTimeout(speakingTimer.current);
+    onAgentSpeaking?.(false);
+  }, [onAgentSpeaking]);
+
+  const sendMessage = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || busy) return;
     setInput("");
+
+    const currentHistory: ChatHistoryItem[] = messages
+      .filter(m => !m.id.startsWith("arrival-"))
+      .map(m => ({
+        sender: m.isUser ? "user" : m.agentName,
+        text: m.text,
+      }));
 
     const userMsg: Message = {
       id: Date.now().toString(),
       agentId: "user",
       agentName: "You",
-      agentColor: "rgba(255,255,255,0.45)",
-      bubbleColor: "rgba(255,255,255,0.07)",
-      text,
+      agentColor: "var(--text-secondary)",
+      bubbleColor: "var(--glass-bg)",
+      text: trimmed,
       isUser: true,
     };
     setMessages(prev => [...prev, userMsg]);
     setBusy(true);
+    onAgentSpeaking?.(true);
 
-    // Queue agents to respond
     const queue: { agent: Agent; delay: number }[] = [];
     config.agents.forEach((agent, idx) => {
       if (Math.random() < agent.probability) {
         queue.push({ agent, delay: 700 + idx * 900 + Math.random() * 400 });
       }
     });
-    // Always ensure at least primary responds
     if (!queue.find(q => q.agent.id === config.agents[0].id)) {
       queue.unshift({ agent: config.agents[0], delay: 700 });
     }
 
     const lastDelay = Math.max(...queue.map(q => q.delay));
+    let repliesReceived = 0;
+
     queue.forEach(({ agent, delay }) => {
       setTimeout(async () => {
-        const reply = await getAgentReply(agent, year, text);
+        const reply = await getAgentReply(agent, year, trimmed, currentHistory);
         setMessages(prev => [...prev, {
           id: `${Date.now()}-${agent.id}`,
           agentId: agent.id,
@@ -112,25 +195,38 @@ export function AgentChat({ config, year, onReturn }: Props) {
           text: reply,
         }]);
         playPingSound(config.ambientFreq * 2);
+        if (ttsEnabled && agent.id === config.agents[0].id) {
+          playVoice(reply, config.id === "prehistoric" ? 0.8 : config.id === "future" ? 1.2 : 1);
+        }
+        repliesReceived++;
+        if (repliesReceived >= queue.length) {
+          speakingTimer.current = setTimeout(() => onAgentSpeaking?.(false), 2000);
+        }
       }, delay);
     });
 
-    // We can't strictly know when all async calls finish based on lastDelay anymore,
-    // so let's just use a reasonably long timeout or keep busy true until the last promise resolves.
-    // For simplicity, we just add 2000ms.
     setTimeout(() => setBusy(false), lastDelay + 2500);
-  };
+  }, [busy, messages, config, year, ttsEnabled, onAgentSpeaking]);
+
+  const send = () => sendMessage(input);
 
   return (
     <div
-      className="absolute left-0 right-0 bottom-0 flex flex-col"
+      className="absolute left-0 right-0 bottom-0 flex flex-col rounded-t-3xl backdrop-blur-md"
       style={{
         zIndex: 10,
-        height: "44%",
-        maxWidth: 640,
+        height: "45%",
+        maxWidth: 660,
         margin: "0 auto",
         right: 0,
         left: 0,
+        background: theme === "dark" 
+          ? "linear-gradient(to bottom, rgba(10, 10, 15, 0.75), rgba(5, 5, 5, 0.92))" 
+          : "linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.95))",
+        borderTop: "1px solid var(--border-color)",
+        borderLeft: "1px solid var(--border-color-subtle)",
+        borderRight: "1px solid var(--border-color-subtle)",
+        boxShadow: "0 -10px 40px rgba(0, 0, 0, 0.25)",
       }}
     >
       {/* Messages scroll area */}
@@ -163,9 +259,9 @@ export function AgentChat({ config, year, onReturn }: Props) {
                   style={{
                     padding: "9px 13px",
                     borderRadius: msg.isUser ? "12px 12px 2px 12px" : "2px 12px 12px 12px",
-                    background: msg.isUser ? "rgba(255,255,255,0.08)" : msg.bubbleColor,
-                    border: `1px solid ${msg.isUser ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)"}`,
-                    color: msg.isUser ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.65)",
+                    background: msg.isUser ? "var(--glass-bg)" : msg.bubbleColor,
+                    border: `1px solid ${msg.isUser ? "var(--border-color)" : "var(--border-color-subtle)"}`,
+                    color: "var(--text-primary)",
                     fontSize: "13px",
                     lineHeight: "1.65",
                     fontFamily: config.fontFamily,
@@ -187,7 +283,7 @@ export function AgentChat({ config, year, onReturn }: Props) {
               exit={{ opacity: 0 }}
               className="flex justify-start"
             >
-              <div style={{ display: "flex", gap: 4, padding: "10px 14px", borderRadius: "2px 12px 12px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", gap: 4, padding: "10px 14px", borderRadius: "2px 12px 12px 12px", background: "var(--glass-bg)", border: "1px solid var(--border-color-subtle)" }}>
                 {[0, 1, 2].map(i => (
                   <motion.div
                     key={i}
@@ -203,57 +299,145 @@ export function AgentChat({ config, year, onReturn }: Props) {
         <div ref={bottomRef} />
       </div>
 
+      {/* Prompt chips */}
+      {promptChips.length > 0 && messages.filter(m => m.isUser).length === 0 && (
+        <div className="shrink-0 flex gap-2 px-4 pb-2 overflow-x-auto">
+          {promptChips.map(chip => (
+            <motion.button
+              key={chip}
+              type="button"
+              onClick={() => sendMessage(chip)}
+              disabled={busy}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: "10px",
+                padding: "5px 12px",
+                borderRadius: 16,
+                whiteSpace: "nowrap",
+                background: `${config.accentColor}15`,
+                border: `1px solid ${config.accentColor}44`,
+                color: config.accentColor,
+                cursor: busy ? "default" : "pointer",
+                opacity: busy ? 0.5 : 1,
+                flexShrink: 0,
+              }}
+            >
+              {chip}
+            </motion.button>
+          ))}
+        </div>
+      )}
+
       {/* Input row */}
       <div
         className="shrink-0 flex items-center gap-3 px-4 pb-4 pt-2"
-        style={{ borderTop: `1px solid rgba(255,255,255,0.06)` }}
+        style={{ borderTop: `1px solid var(--border-color-subtle)` }}
       >
         {/* Back button */}
         <button
           onClick={onReturn}
           style={{
             fontFamily: "'DM Mono', monospace",
-            fontSize: "9px",
+            fontSize: "10px",
             letterSpacing: "0.15em",
-            color: "rgba(255,255,255,0.25)",
-            background: "none",
-            border: "1px solid rgba(255,255,255,0.1)",
-            padding: "5px 10px",
-            borderRadius: 4,
+            color: "var(--text-primary)",
+            background: "var(--glass-bg)",
+            border: "1px solid var(--border-color)",
+            padding: "6px 12px",
+            borderRadius: 6,
             cursor: "pointer",
             whiteSpace: "nowrap",
             flexShrink: 0,
             transition: "all 0.15s",
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.25)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = "var(--text-primary)";
+            e.currentTarget.style.borderColor = "var(--text-primary)";
+            e.currentTarget.style.background = "var(--glass-bg-hover)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = "var(--text-primary)";
+            e.currentTarget.style.borderColor = "var(--border-color)";
+            e.currentTarget.style.background = "var(--glass-bg)";
+          }}
         >
           ← JUMP
         </button>
 
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-          placeholder={`Ask about ${formatYear(year)}…`}
-          className="flex-1 bg-transparent outline-none"
+        {/* Input box wrapper for contrast */}
+        <div
+          className="flex-1 flex items-center rounded-lg border px-3 py-1.5"
           style={{
-            color: "rgba(255,255,255,0.8)",
-            fontSize: "13px",
-            fontFamily: config.fontFamily,
-            minWidth: 0,
+            background: theme === "dark" ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.6)",
+            borderColor: "var(--border-color)",
           }}
-        />
+        >
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+            placeholder={`Ask about ${formatYear(year)}…`}
+            className="flex-1 bg-transparent outline-none"
+            style={{
+              color: "var(--text-primary)",
+              fontSize: "13px",
+              fontFamily: config.fontFamily,
+              minWidth: 0,
+            }}
+          />
+        </div>
 
+        {/* TTS toggle */}
+        <motion.button
+          onClick={() => setTtsEnabled(v => !v)}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.94 }}
+          style={{
+            width: 34, height: 34,
+            borderRadius: "50%",
+            background: ttsEnabled ? `${config.accentColor}22` : "var(--glass-bg)",
+            border: ttsEnabled ? `1px solid ${config.accentColor}55` : "1px solid var(--border-color-subtle)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+          title={ttsEnabled ? "Voice on" : "Voice off"}
+        >
+          <Volume2 size={14} color={ttsEnabled ? config.accentColor : "var(--text-muted)"} />
+        </motion.button>
+
+        {/* Mic button */}
+        <motion.button
+          onClick={toggleListening}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.94 }}
+          style={{
+            width: 34, height: 34,
+            borderRadius: "50%",
+            background: isListening ? "rgba(239, 68, 68, 0.2)" : "var(--glass-bg)",
+            border: isListening ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid var(--border-color-subtle)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "all 0.2s",
+          }}
+          title="Voice input"
+        >
+          <Mic size={14} color={isListening ? "#ef4444" : "var(--text-secondary)"} className={isListening ? "animate-pulse" : ""} />
+        </motion.button>
+
+        {/* Send button */}
         <motion.button
           onClick={send}
           disabled={!input.trim() || busy}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.94 }}
           style={{
-            width: 30, height: 30,
+            width: 34, height: 34,
             borderRadius: "50%",
-            background: input.trim() && !busy ? config.accentColor : "rgba(255,255,255,0.06)",
+            background: input.trim() && !busy ? config.accentColor : "var(--glass-bg)",
             border: "none",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: input.trim() && !busy ? "pointer" : "default",
@@ -261,7 +445,7 @@ export function AgentChat({ config, year, onReturn }: Props) {
             flexShrink: 0,
           }}
         >
-          <ArrowUp size={14} color={input.trim() && !busy ? "#000" : "#444"} />
+          <ArrowUp size={14} color={input.trim() && !busy ? "#000" : "var(--text-muted)"} />
         </motion.button>
       </div>
     </div>

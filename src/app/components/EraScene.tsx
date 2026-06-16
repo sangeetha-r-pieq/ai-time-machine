@@ -1,5 +1,9 @@
-import { motion } from "motion/react";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { type EraConfig } from "./era-config";
+import { ERA_HOTSPOTS } from "./era-hotspots";
+import { SceneParticles } from "./SceneParticles";
+import { playPingSound } from "./sounds";
 
 // ─── Horizon SVGs per era ────────────────────────────────────────────────────
 
@@ -302,128 +306,42 @@ function PersonSilhouette({ variant }: { variant: PersonVariant }) {
   );
 }
 
-// ─── Particles ────────────────────────────────────────────────────────────────
-
-function Particles({ type, color }: { type: EraConfig["particleType"]; color: string }) {
-  if (type === "none") return null;
-  const count = type === "digital" ? 30 : type === "smoke" ? 8 : 20;
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <style>{`
-        @keyframes floatUp { from { transform: translateY(0) translateX(0); opacity: 1; } to { transform: translateY(-100vh) translateX(var(--drift)); opacity: 0; } }
-        @keyframes driftRight { from { transform: translateX(-5vw) translateY(0); opacity: 0; } 50% { opacity: 1; } to { transform: translateX(110vw) translateY(var(--fall)); opacity: 0; } }
-        @keyframes fallDown { from { transform: translateY(-5vh) translateX(0); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(105vh) translateX(var(--drift)); opacity: 0; } }
-        @keyframes pulseFog { 0%,100% { opacity: 0.04; transform: scale(1) translateX(0); } 50% { opacity: 0.09; transform: scale(1.05) translateX(2%); } }
-        @keyframes sparkleDrift { 0% { opacity: 0; transform: translateY(30px) scale(0); } 20% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(0.3); } }
-      `}</style>
-
-      {Array.from({ length: count }).map((_, i) => {
-        const left = Math.random() * 100;
-        const delay = Math.random() * 8;
-        const dur = 4 + Math.random() * 8;
-        const size = type === "smoke" ? 60 + Math.random() * 80 : type === "fog" ? 200 + Math.random() * 300 : type === "digital" ? 3 : 3 + Math.random() * 3;
-
-        if (type === "embers" || type === "sparks") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${left}%`,
-            bottom: "20%",
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            background: color,
-            boxShadow: `0 0 4px ${color}`,
-            animation: `floatUp ${dur}s ${delay}s infinite ease-out`,
-            "--drift": `${(Math.random() - 0.5) * 60}px`,
-          } as React.CSSProperties} />
-        );
-
-        if (type === "sand") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${Math.random() * 20}%`,
-            top: `${20 + Math.random() * 60}%`,
-            width: 40 + Math.random() * 60,
-            height: 1 + Math.random() * 1.5,
-            background: color,
-            borderRadius: 2,
-            animation: `driftRight ${dur}s ${delay}s infinite linear`,
-            "--fall": `${(Math.random() - 0.5) * 30}px`,
-          } as React.CSSProperties} />
-        );
-
-        if (type === "leaves") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${left}%`,
-            top: "-4%",
-            width: size,
-            height: size,
-            background: color,
-            borderRadius: "40% 60% 50% 30%",
-            animation: `fallDown ${dur}s ${delay}s infinite ease-in`,
-            "--drift": `${(Math.random() - 0.5) * 60}px`,
-          } as React.CSSProperties} />
-        );
-
-        if (type === "smoke") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${left}%`,
-            bottom: "38%",
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            background: color,
-            filter: "blur(20px)",
-            animation: `floatUp ${dur * 2}s ${delay}s infinite ease-out`,
-            "--drift": `${(Math.random() - 0.5) * 40}px`,
-          } as React.CSSProperties} />
-        );
-
-        if (type === "fog") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${(i / count) * 100 - 10}%`,
-            top: `${40 + (i % 3) * 15}%`,
-            width: size,
-            height: size / 3,
-            borderRadius: "50%",
-            background: color,
-            filter: "blur(30px)",
-            animation: `pulseFog ${8 + i * 1.5}s ${delay}s infinite ease-in-out`,
-          } as React.CSSProperties} />
-        );
-
-        if (type === "digital") return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${left}%`,
-            top: "-2%",
-            width: 1.5,
-            height: 8 + Math.random() * 12,
-            background: color,
-            borderRadius: 1,
-            animation: `fallDown ${dur * 0.6}s ${delay}s infinite linear`,
-            "--drift": "0px",
-          } as React.CSSProperties} />
-        );
-
-        return null;
-      })}
-    </div>
-  );
-}
-
 // ─── EraScene ─────────────────────────────────────────────────────────────────
 
 interface Props {
   config: EraConfig;
   year: number;
+  isTalking?: boolean;
+  onHotspotLore?: (lore: string) => void;
 }
 
-export function EraScene({ config, year }: Props) {
+export function EraScene({ config, year, isTalking = false, onHotspotLore }: Props) {
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
+  const [particleBurst, setParticleBurst] = useState(0);
+  const [personWave, setPersonWave] = useState(false);
+
+  const hotspots = ERA_HOTSPOTS[config.id] ?? [];
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    setParallax({ x: x * 12, y: y * 8 });
+  }, []);
+
+  const handleSkyClick = () => {
+    setParticleBurst(b => b + 1);
+    playPingSound(config.ambientFreq);
+  };
+
+  const handlePersonClick = () => {
+    setPersonWave(true);
+    const agent = config.agents[0];
+    const line = agent.fallback[Math.floor(Math.random() * agent.fallback.length)];
+    onHotspotLore?.(line);
+    setTimeout(() => setPersonWave(false), 1200);
+  };
   const horizons: Record<string, JSX.Element> = {
     prehistoric: <PrehistoricHorizon dark={config.horizonDark} near={config.horizonNear} />,
     ancient:     <AncientHorizon     dark={config.horizonDark} near={config.horizonNear} />,
@@ -444,38 +362,115 @@ export function EraScene({ config, year }: Props) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{ zIndex: 0 }}
+      onMouseMove={handleMouseMove}
     >
-      {/* Sky */}
-      <div className="absolute inset-0" style={{ background: config.skyGradient }} />
+      {/* Sky — clickable for particle burst */}
+      <div
+        className="absolute inset-0 cursor-crosshair"
+        style={{ background: config.skyGradient }}
+        onClick={handleSkyClick}
+      />
 
       {/* Atmosphere tint */}
       {config.atmosphereColor && (
-        <div className="absolute inset-0" style={{ background: config.atmosphereColor }} />
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: config.atmosphereColor }}
+          animate={{ x: parallax.x * 0.3, y: parallax.y * 0.3 }}
+          transition={{ type: "spring", stiffness: 80, damping: 20 }}
+        />
       )}
 
       {/* Horizon silhouettes — bottom 30% of scene */}
-      <div className="absolute left-0 right-0" style={{ bottom: "22%", height: "30%" }}>
+      <motion.div
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{ bottom: "22%", height: "30%" }}
+        animate={{ x: parallax.x * 0.6, y: parallax.y * 0.4 }}
+        transition={{ type: "spring", stiffness: 80, damping: 20 }}
+      >
         {horizons[config.id] ?? horizons.present}
-      </div>
+      </motion.div>
 
       {/* Ground */}
       <div
-        className="absolute left-0 right-0 bottom-0"
+        className="absolute left-0 right-0 bottom-0 pointer-events-none"
         style={{ height: "22%", background: config.groundGradient }}
       />
 
       {/* Particles */}
-      <Particles type={config.particleType} color={config.particleColor} />
+      <SceneParticles type={config.particleType} color={config.particleColor} burst={particleBurst} />
 
-      {/* Person — centered, standing on ground */}
+      {/* Interactive hotspots */}
+      {hotspots.map(spot => (
+        <button
+          key={spot.id}
+          type="button"
+          className="absolute z-[5] group"
+          style={{ left: spot.left, top: spot.top, transform: "translate(-50%, -50%)" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveHotspot(activeHotspot === spot.id ? null : spot.id);
+            playPingSound(config.ambientFreq * 1.5);
+          }}
+        >
+          <motion.div
+            className="w-3 h-3 rounded-full"
+            style={{ background: config.accentColor, boxShadow: `0 0 12px ${config.accentColor}` }}
+            animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <AnimatePresence>
+            {activeHotspot === spot.id && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                className="absolute left-1/2 -translate-x-1/2 mt-3 w-48 p-3 rounded-xl text-left pointer-events-none"
+                style={{
+                  background: "rgba(0,0,0,0.85)",
+                  border: `1px solid ${config.accentColor}44`,
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.1em", color: config.accentColor, marginBottom: 4 }}>
+                  {spot.label.toUpperCase()}
+                </div>
+                <div style={{ fontSize: "11px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)", fontFamily: config.fontFamily }}>
+                  {spot.lore}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+      ))}
+
+      {/* Person — centered, clickable */}
       <motion.div
-        className="absolute"
+        className="absolute z-[4] cursor-pointer"
         style={{ bottom: "22%", left: "50%", transform: "translateX(-50%)" }}
         initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.7, ease: "easeOut" }}
+        animate={{
+          opacity: 1,
+          y: personWave ? -8 : isTalking ? [0, -3, 0] : 0,
+          scale: isTalking ? [1, 1.02, 1] : 1,
+        }}
+        transition={{
+          opacity: { delay: 0.5, duration: 0.7 },
+          y: isTalking ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
+          scale: isTalking ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
+        }}
+        onClick={(e) => { e.stopPropagation(); handlePersonClick(); }}
+        title="Click to greet"
       >
         <PersonSilhouette variant={config.personVariant} />
+        {isTalking && (
+          <motion.div
+            className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full"
+            style={{ background: config.accentColor, filter: `blur(4px)` }}
+            animate={{ opacity: [0.3, 0.8, 0.3], scaleX: [0.6, 1, 0.6] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+        )}
       </motion.div>
 
       {/* Ground shadow under person */}

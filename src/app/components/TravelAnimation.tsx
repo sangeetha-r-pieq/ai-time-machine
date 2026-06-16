@@ -1,19 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { formatYear } from "./era-config";
 import { playTravelSound } from "./sounds";
 
 interface Props {
   year: number;
+  fromYear?: number;
   onComplete: () => void;
 }
 
-export function TravelAnimation({ year, onComplete }: Props) {
+export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
+  const [displayYear, setDisplayYear] = useState(fromYear);
+
   useEffect(() => {
     playTravelSound();
+    const steps = 14;
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      const t = step / steps;
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayYear(Math.round(fromYear + (year - fromYear) * eased));
+      if (step >= steps) clearInterval(interval);
+    }, 180);
+
     const t = setTimeout(onComplete, 2800);
-    return () => clearTimeout(t);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, fromYear]);
 
   return (
     <motion.div
@@ -24,7 +41,6 @@ export function TravelAnimation({ year, onComplete }: Props) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Radial burst expanding rings */}
       {[0, 1, 2, 3, 4].map(i => (
         <motion.div
           key={i}
@@ -36,15 +52,10 @@ export function TravelAnimation({ year, onComplete }: Props) {
             opacity: [0.8, 0],
             borderColor: ["rgba(255,255,255,0.8)", "rgba(255,255,255,0)"],
           }}
-          transition={{
-            duration: 2.4,
-            delay: i * 0.28,
-            ease: "easeOut",
-          }}
+          transition={{ duration: 2.4, delay: i * 0.28, ease: "easeOut" }}
         />
       ))}
 
-      {/* White flash */}
       <motion.div
         className="absolute inset-0"
         style={{ background: "#fff" }}
@@ -52,7 +63,6 @@ export function TravelAnimation({ year, onComplete }: Props) {
         transition={{ duration: 2.8, times: [0, 0.45, 0.55, 0.65, 1] }}
       />
 
-      {/* Streaking lines */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 24 }).map((_, i) => {
           const angle = (i / 24) * 360;
@@ -76,26 +86,26 @@ export function TravelAnimation({ year, onComplete }: Props) {
         })}
       </div>
 
-      {/* Year label */}
-      <motion.div
-        className="relative z-10 text-center"
-        animate={{
-          scale: [0.5, 1.2, 1],
-          opacity: [0, 1, 1, 0],
-        }}
-        transition={{ duration: 2.8, times: [0, 0.35, 0.7, 1] }}
-      >
-        <div style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: "clamp(32px, 6vw, 64px)",
-          fontWeight: 300,
-          color: "#fff",
-          letterSpacing: "-0.02em",
-          textShadow: "0 0 40px rgba(255,255,255,0.8)",
-          mixBlendMode: "difference",
-        }}>
-          {formatYear(year)}
-        </div>
+      {/* Odometer year digits */}
+      <motion.div className="relative z-10 text-center">
+        <motion.div
+          key={displayYear}
+          initial={{ opacity: 0.6, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.1 }}
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "clamp(32px, 6vw, 64px)",
+            fontWeight: 300,
+            color: "#fff",
+            letterSpacing: "-0.02em",
+            textShadow: "0 0 40px rgba(255,255,255,0.8)",
+            mixBlendMode: "difference",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatYear(displayYear)}
+        </motion.div>
         <motion.div
           style={{
             fontFamily: "'DM Mono', monospace",
@@ -104,10 +114,25 @@ export function TravelAnimation({ year, onComplete }: Props) {
             color: "rgba(255,255,255,0.6)",
             marginTop: 12,
           }}
-          animate={{ opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 2.8, times: [0.2, 0.5, 0.7, 1] }}
+          animate={{ opacity: [0.4, 1, 1, 0.4] }}
+          transition={{ duration: 2.8, repeat: Infinity }}
         >
           INITIATING TEMPORAL JUMP
+        </motion.div>
+        <motion.div
+          className="mt-4 flex justify-center gap-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {Array.from({ length: 8 }).map((_, i) => (
+            <motion.div
+              key={i}
+              style={{ width: 3, height: 12, background: "rgba(255,255,255,0.4)", borderRadius: 1 }}
+              animate={{ scaleY: [0.3, 1, 0.3], opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 0.8, delay: i * 0.08, repeat: Infinity }}
+            />
+          ))}
         </motion.div>
       </motion.div>
     </motion.div>

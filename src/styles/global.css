@@ -43,6 +43,16 @@
   --sidebar-accent-foreground: #888;
   --sidebar-border: rgba(255,255,255,0.05);
   --sidebar-ring: rgba(255,255,255,0.12);
+
+  /* Custom Time Machine variables (Dark defaults) */
+  --text-primary: rgba(255,255,255,0.85);
+  --text-secondary: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.18);
+  --text-glow: rgba(255,255,255,0.06);
+  --border-color: rgba(255,255,255,0.1);
+  --border-color-subtle: rgba(255,255,255,0.06);
+  --glass-bg: rgba(255,255,255,0.04);
+  --glass-bg-hover: rgba(255,255,255,0.08);
 }
 
 .dark {
@@ -75,6 +85,45 @@
   --sidebar-accent-foreground: #888;
   --sidebar-border: rgba(255,255,255,0.05);
   --sidebar-ring: rgba(255,255,255,0.12);
+
+  --text-primary: rgba(255,255,255,0.85);
+  --text-secondary: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.18);
+  --text-glow: rgba(255,255,255,0.06);
+  --border-color: rgba(255,255,255,0.1);
+  --border-color-subtle: rgba(255,255,255,0.06);
+  --glass-bg: rgba(255,255,255,0.04);
+  --glass-bg-hover: rgba(255,255,255,0.08);
+}
+
+.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0f172a;
+  --primary-foreground: #f8fafc;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #475569;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --ring: rgba(15, 23, 42, 0.1);
+
+  --text-primary: rgba(15, 23, 42, 0.85);
+  --text-secondary: rgba(15, 23, 42, 0.6);
+  --text-muted: rgba(15, 23, 42, 0.35);
+  --text-glow: rgba(15, 23, 42, 0.04);
+  --border-color: rgba(15, 23, 42, 0.12);
+  --border-color-subtle: rgba(15, 23, 42, 0.08);
+  --glass-bg: rgba(0, 0, 0, 0.02);
+  --glass-bg-hover: rgba(0, 0, 0, 0.05);
 }
 
 @theme inline {

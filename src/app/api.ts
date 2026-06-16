@@ -1,11 +1,36 @@
 const API_KEY = "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";
 
-export async function fetchGroqReply(agentName: string, agentRole: string, year: number, question: string): Promise<string> {
-  const prompt = `You are ${agentName}, playing the role of ${agentRole} in the year ${year}.
-  Respond to the user's input in character. Be immersive, concise, and stay completely in character. Do not break the fourth wall.
-  Keep your response to a short paragraph (2-3 sentences max).
-  
-  User: ${question}`;
+export interface ChatHistoryItem {
+  sender: string;
+  text: string;
+}
+
+export async function fetchGroqReply(
+  agentName: string,
+  agentRole: string,
+  year: number,
+  question: string,
+  history: ChatHistoryItem[] = []
+): Promise<string> {
+  const systemPrompt = `You are ${agentName}, playing the role of ${agentRole} in the year ${year}.
+Respond to the user's input in character. Be immersive, concise, and stay completely in character. Do not break the fourth wall.
+Keep your response to a short paragraph (2-3 sentences max). Use formatting matching the character's background/era.`;
+
+  const messages = [
+    { role: "system", content: systemPrompt }
+  ];
+
+  // Map history to roles
+  history.forEach(item => {
+    if (item.sender === "user") {
+      messages.push({ role: "user", content: item.text });
+    } else {
+      messages.push({ role: "assistant", content: `${item.sender}: ${item.text}` });
+    }
+  });
+
+  // Append current question
+  messages.push({ role: "user", content: question });
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -16,7 +41,7 @@ export async function fetchGroqReply(agentName: string, agentRole: string, year:
       },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: prompt }],
+        messages,
         temperature: 0.7,
       }),
     });
