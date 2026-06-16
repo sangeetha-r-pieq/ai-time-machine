@@ -136,6 +136,8 @@ const DEFAULT_RESPONSE: ChatResponse = {
   scene_reaction: "none",
 };
 
+export type ChatFetchResult = ChatResponse & { apiError?: string };
+
 async function callGroq(messages: { role: string; content: string }[], model: string): Promise<string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
@@ -161,20 +163,37 @@ async function callGroq(messages: { role: string; content: string }[], model: st
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-export async function fetchAgentChat(ctx: ChatRequestContext): Promise<ChatResponse> {
+export async function fetchAgentChat(ctx: ChatRequestContext): Promise<ChatFetchResult> {
   const messages = buildMessages(ctx);
+
+  if (!API_KEY && !import.meta.env.DEV) {
+    return {
+      ...DEFAULT_RESPONSE,
+      reply: "The timestream is unstable — the voices of this era fade. Please try again.",
+      apiError: "Missing VITE_GROQ_API_KEY. Add your Groq key to .env.local and restart the dev server.",
+    };
+  }
 
   try {
     const raw = await callGroq(messages, MODEL_PRIMARY);
     return parseResponse(raw);
   } catch (primaryErr) {
-    console.warn("Primary model failed, retrying with fallback:", primaryErr);
+    const primaryMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+    console.warn("Primary model failed, retrying with fallback:", primaryMsg);
     try {
       const raw = await callGroq(messages, MODEL_FALLBACK);
       return parseResponse(raw);
     } catch (fallbackErr) {
-      console.error("Chat failed:", fallbackErr);
-      return { ...DEFAULT_RESPONSE, reply: "The timestream is unstable — the voices of this era fade. Please try again." };
+      const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      console.error("Chat failed:", fallbackMsg);
+      const noKey = /401|403|invalid.*api.*key|authentication/i.test(fallbackMsg);
+      return {
+        ...DEFAULT_RESPONSE,
+        reply: "The timestream is unstable — the voices of this era fade. Please try again.",
+        apiError: noKey
+          ? "Groq API key missing or invalid. Copy .env.example → .env.local, add GROQ_API_KEY, restart npm run dev."
+          : fallbackMsg,
+      };
     }
   }
 }

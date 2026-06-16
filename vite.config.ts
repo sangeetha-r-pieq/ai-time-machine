@@ -38,7 +38,7 @@ export default defineConfig({
         rewrite: (p) => p.replace(/^\/api\/groq/, ''),
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
-            const key = process.env.GROQ_API_KEY;
+            const key = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
             if (key) proxyReq.setHeader('Authorization', `Bearer ${key}`);
           });
         },

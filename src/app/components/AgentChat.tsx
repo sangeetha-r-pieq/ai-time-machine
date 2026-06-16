@@ -247,7 +247,10 @@ export function AgentChat({
         reply: getAgentFallbackReply(selectedAgent, trimmed),
         fun_fact: response.fun_fact || yearContext.detail,
       };
-      setChatError("Connection unstable — showing local archive response.");
+      setChatError(
+        response.apiError
+          ?? "Could not reach Groq AI — showing a local canned reply instead. Check your API key or try again."
+      );
     }
 
     const msgId = `${Date.now()}-${selectedAgent.id}`;
