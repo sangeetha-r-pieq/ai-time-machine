@@ -16,7 +16,7 @@ const PRESETS = [
   { label: "1947 AD", year: 1947 },
   { label: "1969 AD", year: 1969 },
   { label: "1991 AD", year: 1991 },
-  { label: "2024 AD", year: 2024 },
+  { label: "2026 AD", year: 2026 },
   { label: "2075 AD", year: 2075 },
 ];
 
@@ -37,7 +37,7 @@ export function YearPicker({
   stampsCount,
   onOpenDashboard,
 }: Props) {
-  const [year, setYear] = useState(2024);
+  const [year, setYear] = useState(2026);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [bgLoaded, setBgLoaded] = useState(false);
@@ -91,6 +91,19 @@ export function YearPicker({
       idx = Math.max(0, Math.min(PRESETS.length - 1, idx + delta));
     }
     selectPreset(PRESETS[idx].year);
+  };
+
+  const handleBeginJourney = () => {
+    let targetYear = year;
+    if (editing) {
+      const v = parseYear(draft);
+      if (v !== null) {
+        targetYear = v;
+        setYear(v);
+      }
+      setEditing(false);
+    }
+    onJump(targetYear);
   };
 
   const scrollTimeline = (delta: -1 | 1) => {
@@ -529,7 +542,7 @@ export function YearPicker({
 
         {/* Begin Journey */}
         <motion.button
-          onClick={() => onJump(year)}
+          onClick={handleBeginJourney}
           className="flex items-center gap-2 mt-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

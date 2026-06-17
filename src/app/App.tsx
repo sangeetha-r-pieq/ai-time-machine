@@ -108,8 +108,8 @@ const SOUVENIRS: Record<string, Souvenir> = {
 export default function App() {
   const isWide = useWideLayout();
   const [phase, setPhase] = useState<Phase>("picker");
-  const [year, setYear] = useState(2024);
-  const [travelFromYear, setTravelFromYear] = useState(2024);
+  const [year, setYear] = useState(2026);
+  const [travelFromYear, setTravelFromYear] = useState(2026);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [sceneReaction, setSceneReaction] = useState(0);
   const [souvenirReveal, setSouvenirReveal] = useState<Souvenir | null>(null);
@@ -199,6 +199,7 @@ export default function App() {
   const handleReturn = () => {
     stopAmbient();
     ambientRunning.current = false;
+    setYear(2026);
     setPhase("picker");
   };
 

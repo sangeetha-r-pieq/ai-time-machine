@@ -27,7 +27,14 @@ function Face({ talking }: { talking?: boolean }) {
       <circle cx="35" cy="44" r="3" fill={CHEEK} opacity="0.55" />
       <circle cx="65" cy="44" r="3" fill={CHEEK} opacity="0.55" />
       {talking ? (
-        <ellipse cx="50" cy="48" rx="5" ry="4" fill={OUTLINE} />
+        <motion.ellipse
+          cx="50"
+          cy="48"
+          rx="5"
+          fill={OUTLINE}
+          animate={{ ry: [1.5, 4.5, 1.5] }}
+          transition={{ duration: 0.22, repeat: Infinity, ease: "easeInOut" }}
+        />
       ) : (
         <path d="M 43 47 Q 50 53 57 47" fill="none" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" />
       )}

@@ -28,6 +28,7 @@ const EXACT: Record<number, YearContext> = {
   [2014]: { emoji: "🚀", headline: "New Space Race", detail: "Private rockets rise, Mars missions multiply, and social media reshapes politics worldwide." },
   [2020]: { emoji: "🦠", headline: "Pandemic Year", detail: "COVID-19 halts the planet. Remote work, vaccines, and digital life accelerate overnight." },
   [2024]: { emoji: "🤖", headline: "AI Everywhere", detail: "Generative AI spreads through work and culture as climate, war, and elections unsettle the globe." },
+  [2026]: { emoji: "🦾", headline: "Present Day", detail: "Interactive AI systems and advanced temporal experiments take center stage as humanity navigates the digital transition." },
   [2070]: { emoji: "🌃", headline: "Transformed Planet", detail: "Climate tech, longevity medicine, and off-world settlement redefine what 'civilization' means." },
 };
 

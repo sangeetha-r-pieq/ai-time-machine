@@ -9,6 +9,7 @@ export interface StoredMessage {
   text: string;
   funFact?: string;
   isUser?: boolean;
+  imageUrl?: string;
 }
 
 export interface StoredChat {

@@ -63,7 +63,7 @@ const GREETINGS: Record<string, string[]> = {
   ],
   "present-citizen": [
     "Hey! Bengaluru's buzzing with AI startups. UPI, Chandrayaan, LLMs — what interests you?",
-    "Namaste from 2024! India builds AI for 22 languages now. What's your question?",
+    "Namaste from 2026! India builds AI for 22 languages now. What's your question?",
   ],
   "future-guide": [
     "Welcome, time traveler. Bharat 2070 holds answers your era is still seeking. Ask.",

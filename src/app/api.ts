@@ -14,6 +14,7 @@ export interface ChatResponse {
   mission_complete: boolean;
   follow_up_chips: string[];
   scene_reaction: "none" | "fire" | "stars" | "snow" | "digital" | "spark";
+  image_prompt?: string;
 }
 
 export interface ChatRequestContext {
@@ -90,9 +91,10 @@ OUTPUT FIELDS:
 - fun_fact: one surprising specific fact tied to the topic — spicy or memorable.
 - follow_up_chips: 2 short playful follow-ups (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
+- image_prompt: a descriptive 8-15 word prompt for generating an image showing the subject/events mentioned in the reply. Must be historical, specific, realistic/period-appropriate (e.g. "old polaroid photo of a 1990s desktop computer, warm lighting"). Do not include any text or watermark.
 
 Respond ONLY with valid JSON:
-{"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none"}`;
+{"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none","image_prompt":"..."}`;
 }
 
 function buildMessages(ctx: ChatRequestContext) {
@@ -133,6 +135,7 @@ function parseResponse(raw: string): ChatResponse {
       ? parsed.follow_up_chips.slice(0, 3).map(String)
       : [],
     scene_reaction: (parsed.scene_reaction as ChatResponse["scene_reaction"]) ?? "none",
+    image_prompt: parsed.image_prompt ? String(parsed.image_prompt) : undefined,
   };
 }
 
@@ -142,6 +145,7 @@ const DEFAULT_RESPONSE: ChatResponse = {
   mission_complete: false,
   follow_up_chips: [],
   scene_reaction: "none",
+  image_prompt: undefined,
 };
 
 export type ChatFetchResult = ChatResponse & { apiError?: string };

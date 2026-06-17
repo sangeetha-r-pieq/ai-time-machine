@@ -36,10 +36,30 @@ function pickVoice(profile: AgentVoiceProfile): SpeechSynthesisVoice | undefined
   return scored[0]?.v;
 }
 
-export function playVoice(text: string, profile: AgentVoiceProfile): void {
-  if (!("speechSynthesis" in window) || !text.trim()) return;
+let activeOnEnd: (() => void) | null = null;
+
+export function playVoice(
+  text: string,
+  profile: AgentVoiceProfile,
+  onStart?: () => void,
+  onEnd?: () => void
+): void {
+  if (!("speechSynthesis" in window) || !text.trim()) {
+    if (onEnd) onEnd();
+    return;
+  }
+
+  if (activeOnEnd) {
+    try {
+      activeOnEnd();
+    } catch (e) {
+      console.error("Error in previous voice onEnd:", e);
+    }
+  }
 
   window.speechSynthesis.cancel();
+  activeOnEnd = onEnd || null;
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.pitch = profile.pitch;
   utterance.rate = profile.rate;
@@ -47,11 +67,32 @@ export function playVoice(text: string, profile: AgentVoiceProfile): void {
   const voice = pickVoice(profile);
   if (voice) utterance.voice = voice;
 
+  if (onStart) utterance.onstart = onStart;
+
+  const handleEnd = () => {
+    if (activeOnEnd === onEnd) {
+      activeOnEnd = null;
+    }
+    if (onEnd) onEnd();
+  };
+
+  utterance.onend = handleEnd;
+  utterance.onerror = handleEnd;
+
   window.speechSynthesis.speak(utterance);
 }
 
 export function stopVoice(): void {
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
+  }
+  if (activeOnEnd) {
+    const cb = activeOnEnd;
+    activeOnEnd = null;
+    try {
+      cb();
+    } catch (e) {
+      console.error("Error in stopVoice callback:", e);
+    }
   }
 }

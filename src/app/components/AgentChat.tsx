@@ -6,6 +6,7 @@ import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS, FUN_PROMPT_CHIPS } from "./era-hotspots
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
+import { pollinationsUrl } from "./image-utils";
 import { getAgentGender, getAgentVoiceProfile, genderIcon, genderLabel } from "./agent-voices";
 import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
@@ -276,15 +277,33 @@ export function AgentChat({
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: partial } : m));
     });
 
+    const imgUrl = response.image_prompt
+      ? pollinationsUrl(response.image_prompt)
+      : undefined;
+
     setMessages(prev => prev.map(m =>
-      m.id === msgId ? { ...m, text: response.reply, streaming: false } : m
+      m.id === msgId ? { ...m, text: response.reply, imageUrl: imgUrl, streaming: false } : m
     ));
 
     setFollowUpChips(response.follow_up_chips);
     playPingSound(config.ambientFreq * 2);
 
+    setTypingAgent(null);
+    setBusy(false);
+
     if (ttsEnabled) {
-      playVoice(response.reply, getAgentVoiceProfile(config.id, selectedAgent.id));
+      playVoice(
+        response.reply,
+        getAgentVoiceProfile(config.id, selectedAgent.id),
+        () => {
+          onAgentSpeaking?.(true);
+        },
+        () => {
+          onAgentSpeaking?.(false);
+        }
+      );
+    } else {
+      onAgentSpeaking?.(false);
     }
 
     if (response.scene_reaction && response.scene_reaction !== "none") {
@@ -296,10 +315,6 @@ export function AgentChat({
       setMissionComplete(true);
       onAwardSouvenir?.(config.id);
     }
-
-    setTypingAgent(null);
-    setBusy(false);
-    onAgentSpeaking?.(false);
   }, [
     busy, messages, selectedAgent, config, year, yearContext, mission, hotspots,
     missionComplete, buildHistory, onAwardSouvenir, onAgentSpeaking, onSceneReaction,
@@ -312,9 +327,20 @@ export function AgentChat({
     setSelectedAgentId(agent.id);
     if (ttsEnabled) {
       const line = getAgentGreeting(agent);
-      playVoice(line.length > 120 ? `${line.slice(0, 120)}…` : line, getAgentVoiceProfile(config.id, agent.id));
+      playVoice(
+        line.length > 120 ? `${line.slice(0, 120)}…` : line,
+        getAgentVoiceProfile(config.id, agent.id),
+        () => {
+          onAgentSpeaking?.(true);
+        },
+        () => {
+          onAgentSpeaking?.(false);
+        }
+      );
+    } else {
+      onAgentSpeaking?.(false);
     }
-  }, [busy, selectedAgentId, ttsEnabled, config.id]);
+  }, [busy, selectedAgentId, ttsEnabled, config.id, onAgentSpeaking]);
 
   const handleClearChat = () => {
     clearChat(config.id);
@@ -588,6 +614,30 @@ export function AgentChat({
                     <span style={{ color: config.accentColor, fontWeight: 600 }}>Plot twist: </span>
                     {msg.funFact}
                   </FunFactCard>
+                )}
+                {msg.imageUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-2.5 overflow-hidden rounded-xl border relative group select-none shadow-md"
+                    style={{
+                      borderColor: theme === "dark" ? "rgba(255,255,255,0.08)" : `${msg.agentColor}22`,
+                      background: "rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    <img
+                      src={msg.imageUrl}
+                      alt="Time period scene"
+                      className="w-full h-auto max-h-[200px] object-cover hover:scale-[1.03] transition-transform duration-500 cursor-zoom-in"
+                      loading="lazy"
+                      onClick={() => window.open(msg.imageUrl, "_blank")}
+                      onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
+                    />
+                    <div className="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white/80 font-mono tracking-wider">
+                      HISTORICAL SNAPSHOT · {year}
+                    </div>
+                  </motion.div>
                 )}
               </div>
             </motion.div>

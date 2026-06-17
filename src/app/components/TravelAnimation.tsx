@@ -40,12 +40,18 @@ interface Props {
   onComplete: () => void;
 }
 
-function TimeRocket({ accent }: { accent: string }) {
+function TimeRocket({ accent, flipped }: { accent: string; flipped?: boolean }) {
   return (
-    <svg viewBox="0 0 140 90" width={140} height={90} style={{ display: "block", filter: "drop-shadow(4px 4px 0 rgba(0,0,0,0.4))" }}>
+    <svg viewBox="0 0 140 90" width={140} height={90} style={{ display: "block", filter: "drop-shadow(4px 4px 0 rgba(0,0,0,0.4))", transform: flipped ? "scaleX(-1)" : "none" }}>
       <motion.g
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+        animate={{
+          y: [0, -4, 1, -3, 0],
+          x: [0, 1, -1, 0.5, 0],
+        }}
+        transition={{
+          y: { duration: 0.5, repeat: Infinity, ease: "easeInOut" },
+          x: { duration: 0.15, repeat: Infinity, ease: "linear" },
+        }}
       >
         {/* Flame */}
         <motion.ellipse
@@ -81,7 +87,7 @@ function TimeRocket({ accent }: { accent: string }) {
   );
 }
 
-export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
+export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
   const [displayYear, setDisplayYear] = useState(fromYear);
   const [flipIndex, setFlipIndex] = useState(0);
 
@@ -122,47 +128,145 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
 
   const forward = year >= fromYear;
 
+  // ── Direction-based palettes ──────────────────────────────────────────
+  const bgGradient = forward
+    ? "linear-gradient(180deg, #020818 0%, #0a1a40 40%, #0d2855 100%)"    // cool deep blue
+    : "linear-gradient(180deg, #1a0a00 0%, #2d1800 40%, #3d2000 100%)";   // warm amber/sepia
+
+  const streakColor = forward ? "#38bdf8" : "#f59e0b";    // cyan vs amber
+  const glowColor   = forward ? "#06b6d4" : "#d97706";
+  const vortexColor = forward ? "rgba(56,189,248,0.12)" : "rgba(245,158,11,0.12)";
+
   return (
     <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #0a0a1a 0%, #1a1040 50%, #0d0820 100%)" }}
+      style={{ background: bgGradient }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Stars */}
+      {/* ── Film grain overlay (backward only) ── */}
+      {!forward && (
+        <div
+          className="absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")`,
+            opacity: 0.35,
+            mixBlendMode: "overlay",
+          }}
+        />
+      )}
+
+      {/* ── Pulsing time vortex rings ── */}
+      {[1, 2, 3, 4].map(ring => (
+        <motion.div
+          key={`vortex-${ring}`}
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: ring * 160,
+            height: ring * 160,
+            border: `1.5px solid ${vortexColor}`,
+            left: "50%",
+            top: "42%",
+            transform: "translate(-50%, -50%)",
+          }}
+          animate={{
+            scale: forward ? [0.4, 1.8] : [1.8, 0.4],
+            opacity: [0, 0.7, 0],
+          }}
+          transition={{
+            duration: 1.6,
+            repeat: Infinity,
+            delay: ring * 0.35,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+
+      {/* ── Radial speed streaks (exploding for forward, imploding/sucking for backward) ── */}
+      {Array.from({ length: 24 }).map((_, i) => {
+        const angle = (i / 24) * 360;
+        return (
+          <div
+            key={`radial-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: "50%",
+              top: "42%",
+              transformOrigin: "top center",
+              transform: `rotate(${angle}deg)`,
+            }}
+          >
+            <motion.div
+              style={{
+                width: 2,
+                height: "35vh",
+                background: `linear-gradient(${forward ? "to bottom" : "to top"}, ${streakColor}aa, transparent)`,
+                transformOrigin: "top center",
+              }}
+              animate={{
+                y: forward ? ["0vh", "35vh"] : ["35vh", "0vh"],
+                scaleY: [0, 1.5, 0],
+                opacity: [0, 0.8, 0],
+              }}
+              transition={{
+                duration: 0.8 + (i % 4) * 0.15,
+                repeat: Infinity,
+                delay: i * 0.03,
+                ease: forward ? "easeOut" : "easeIn",
+              }}
+            />
+          </div>
+        );
+      })}
+
+      {/* ── Stars (move direction matches travel) ── */}
       {Array.from({ length: 40 }).map((_, i) => (
         <motion.div
           key={i}
-          className="absolute rounded-full bg-white"
+          className="absolute rounded-full"
           style={{
             width: 1 + (i % 3),
             height: 1 + (i % 3),
             left: `${(i * 17 + 5) % 100}%`,
             top: `${(i * 23 + 3) % 100}%`,
+            background: forward ? "#fff" : "#fbbf24",
           }}
-          animate={{ opacity: [0.2, 0.9, 0.2] }}
-          transition={{ duration: 1.5 + (i % 5) * 0.3, repeat: Infinity, delay: i * 0.05 }}
+          animate={{
+            opacity: [0.2, 0.9, 0.2],
+            x: forward ? [0, -20] : [0, 20],
+          }}
+          transition={{
+            duration: 1.5 + (i % 5) * 0.3,
+            repeat: Infinity,
+            delay: i * 0.05,
+          }}
         />
       ))}
 
-      {/* Speed lines */}
-      {Array.from({ length: 12 }).map((_, i) => (
+      {/* ── Horizontal speed lines ── */}
+      {Array.from({ length: 14 }).map((_, i) => (
         <motion.div
           key={`line-${i}`}
-          className="absolute h-0.5 rounded-full"
+          className="absolute rounded-full"
           style={{
-            top: `${15 + i * 7}%`,
-            background: `linear-gradient(90deg, transparent, ${destEra.accentColor}88, transparent)`,
-            width: "30%",
+            top: `${10 + i * 6}%`,
+            height: i % 3 === 0 ? 2 : 1,
+            background: `linear-gradient(90deg, transparent, ${streakColor}${i % 2 === 0 ? "66" : "44"}, transparent)`,
+            width: `${20 + (i % 4) * 5}%`,
           }}
           animate={{ x: forward ? ["120vw", "-40vw"] : ["-40vw", "120vw"] }}
-          transition={{ duration: 0.8 + i * 0.06, repeat: Infinity, delay: i * 0.08, ease: "linear" }}
+          transition={{
+            duration: 0.7 + i * 0.05,
+            repeat: Infinity,
+            delay: i * 0.06,
+            ease: "linear",
+          }}
         />
       ))}
 
-      {/* Era flipbook cards streaking past */}
+      {/* ── Era flipbook cards streaking past ── */}
       {erasInPath.map((eraId, i) => (
         <motion.div
           key={eraId}
@@ -191,7 +295,7 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
         </motion.div>
       ))}
 
-      {/* Flying rocket */}
+      {/* ── Flying rocket ── */}
       <motion.div
         className="absolute z-20"
         style={{ top: "42%" }}
@@ -199,18 +303,18 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
         animate={{ x: forward ? "120vw" : "-20vw" }}
         transition={{ duration: 2.6, ease: "easeInOut" }}
       >
-        <TimeRocket accent={destEra.accentColor} />
+        <TimeRocket accent={destEra.accentColor} flipped={!forward} />
       </motion.div>
 
-      {/* Center flipbook highlight */}
+      {/* ── Center flipbook highlight ── */}
       <AnimatePresence mode="wait">
         {erasInPath.length > 0 && (
           <motion.div
             key={erasInPath[flipIndex]}
             className="relative z-10 flex flex-col items-center"
-            initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+            initial={{ opacity: 0, scale: 0.5, rotate: forward ? -10 : 10 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 1.2, rotate: 10 }}
+            exit={{ opacity: 0, scale: 1.2, rotate: forward ? 10 : -10 }}
             transition={{ duration: 0.25 }}
             style={{ marginTop: "18vh" }}
           >
@@ -233,11 +337,11 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Year odometer */}
+      {/* ── Year odometer ── */}
       <motion.div className="relative z-30 text-center" style={{ marginTop: "auto", marginBottom: "12vh" }}>
         <motion.div
           key={displayYear}
-          initial={{ opacity: 0.5, y: 6, scale: 0.95 }}
+          initial={{ opacity: 0.5, y: forward ? 6 : -6, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.12 }}
           style={{
@@ -246,7 +350,7 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
             fontWeight: 400,
             color: "#fff",
             letterSpacing: "-0.02em",
-            textShadow: `0 0 30px ${destEra.accentColor}, 3px 3px 0 #2D3436`,
+            textShadow: `0 0 30px ${glowColor}, 3px 3px 0 #2D3436`,
           }}
         >
           {formatYear(displayYear)}
@@ -256,16 +360,41 @@ export function TravelAnimation({ year, fromYear = 2024, onComplete }: Props) {
             fontFamily: "'DM Mono', monospace",
             fontSize: "11px",
             letterSpacing: "0.25em",
-            color: "rgba(255,255,255,0.65)",
+            color: forward ? "rgba(56,189,248,0.75)" : "rgba(251,191,36,0.75)",
             marginTop: 10,
             textTransform: "uppercase",
           }}
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.2, repeat: Infinity }}
         >
-          {forward ? "Traveling forward →" : "Traveling backward ←"}
+          {forward ? "Traveling forward →" : "← Rewinding time"}
         </motion.div>
       </motion.div>
+
+      {/* ── Sepia vignette overlay (backward only) ── */}
+      {!forward && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none z-[2]"
+          style={{
+            background: "radial-gradient(ellipse at center, transparent 40%, rgba(139,69,19,0.25) 100%)",
+          }}
+          animate={{ opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+
+      {/* ── Cool edge glow (forward only) ── */}
+      {forward && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none z-[2]"
+          style={{
+            background: "radial-gradient(ellipse at center, transparent 50%, rgba(6,182,212,0.12) 100%)",
+          }}
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
     </motion.div>
   );
 }
+

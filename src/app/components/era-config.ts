@@ -487,7 +487,7 @@ const CONFIGS: EraConfig[] = [
         "Welcome. Your biosignature is unusual — consistent with an earlier century. Our temporal detection systems flagged you immediately.",
       ]),
       makeAgent("human", "Lena Vasquez", "Historian of the 21st century", "#70d0ff", "rgba(112,208,255,0.08)", 0.6, [
-        { triggers: [/2024|your time|before|past/i], reply: "2024 is fascinating to study in retrospect. The AI transition, the climate crisis, the geopolitical realignment — three civilisation-scale processes running simultaneously. Your era had no idea how the next twenty years would go." },
+        { triggers: [/2024|2026|your time|before|past/i], reply: "2026 is fascinating to study in retrospect. The AI transition, the climate crisis, the geopolitical realignment — three civilisation-scale processes running simultaneously. Your era had no idea how the next twenty years would go." },
         { triggers: [/human|people|society/i], reply: "Humans adapted, as they always have. Extended lifespans created new social structures — multiple careers, multiple long-term relationships, revised family definitions. The old age norms for 'life stages' became obsolete." },
       ], [
         "From here, your era looks like a critical decade. The decisions made between 2020-2035 shaped most of what came after. History regards them as consequential.",

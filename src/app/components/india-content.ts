@@ -1,4 +1,5 @@
 import type { EraId } from "./era-config";
+import { getEraImage, pollinationsUrl } from "./image-utils";
 
 /** Cartoon-style avatar emoji per agent (eraId-agentId) */
 export const AGENT_AVATARS: Record<string, string> = {
@@ -54,11 +55,22 @@ const ERA_BG_PROMPTS: Record<EraId, string> = {
 const BG_STYLE =
   "flat cartoon background art, rich colors, cinematic wide 16:9, no text, no watermark";
 
+/**
+ * Returns a URL for the era background.
+ * Uses Pollinations with seed-based caching for the styled cartoon background.
+ */
 export function getEraBackgroundUrl(eraId: EraId, year: number): string {
   const base = ERA_BG_PROMPTS[eraId] ?? "historical landscape, era-appropriate architecture, illustrated scene";
   const prompt = `${base}, year ${year}, ${BG_STYLE}`;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&nologo=true`;
+  return pollinationsUrl(prompt, { width: 960, height: 540 });
 }
+
+/**
+ * Async — fetches a **real photo** for the era from Wikipedia.
+ * Falls back to Pollinations if Wikipedia has no image.
+ * Results are cached in localStorage so each era only fetches once ever.
+ */
+export { getEraImage };
 
 /** @deprecated use getEraBackgroundUrl */
 export const getIndiaBackgroundUrl = getEraBackgroundUrl;
