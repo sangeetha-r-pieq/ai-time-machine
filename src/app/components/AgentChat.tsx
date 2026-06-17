@@ -2,13 +2,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowUp, Mic, Volume2, Copy, Trash2, Target, CheckCircle2, ChevronDown, ChevronUp, Maximize2 } from "lucide-react";
 import { type EraConfig, type Agent, getAgentGreeting, getAgentFallbackReply } from "./era-config";
-import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS } from "./era-hotspots";
+import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS, FUN_PROMPT_CHIPS } from "./era-hotspots";
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
+import { getAgentGender, getAgentVoiceProfile, genderIcon, genderLabel } from "./agent-voices";
 import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
-import { playPingSound } from "./sounds";
+import { playPingSound, stopAmbient } from "./sounds";
 import { playVoice, stopVoice } from "./voice";
 import { fetchAgentChat, streamReplyText, type ChatHistoryItem } from "../api";
 import { useTravel } from "../../context/TravelContext";
@@ -63,6 +64,7 @@ export function AgentChat({
   const [missionComplete, setMissionComplete] = useState(false);
   const [followUpChips, setFollowUpChips] = useState<string[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const [panelHeight, setPanelHeight] = useState(() => {
     try {
       const saved = sessionStorage.getItem(CHAT_HEIGHT_KEY);
@@ -82,9 +84,14 @@ export function AgentChat({
 
   const selectedAgent = config.agents.find(a => a.id === selectedAgentId) ?? config.agents[0];
   const defaultChips = ERA_PROMPT_CHIPS[config.id] ?? [];
-  const activeChips = followUpChips.length > 0 ? followUpChips : defaultChips;
+  const activeChips = followUpChips.length > 0
+    ? followUpChips
+    : [FUN_PROMPT_CHIPS[0], defaultChips[0], defaultChips[1]].filter(Boolean);
 
-  const [isListening, setIsListening] = useState(false);
+  useEffect(() => {
+    stopAmbient();
+  }, []);
+
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -277,7 +284,7 @@ export function AgentChat({
     playPingSound(config.ambientFreq * 2);
 
     if (ttsEnabled) {
-      playVoice(response.reply, config.id === "prehistoric" ? 0.85 : config.id === "future" ? 1.15 : 1);
+      playVoice(response.reply, getAgentVoiceProfile(config.id, selectedAgent.id));
     }
 
     if (response.scene_reaction && response.scene_reaction !== "none") {
@@ -298,6 +305,16 @@ export function AgentChat({
     missionComplete, buildHistory, onAwardSouvenir, onAgentSpeaking, onSceneReaction,
     ttsEnabled, state, updateMemory, addJourney,
   ]);
+
+  const switchAgent = useCallback((agent: Agent) => {
+    if (busy || agent.id === selectedAgentId) return;
+    stopVoice();
+    setSelectedAgentId(agent.id);
+    if (ttsEnabled) {
+      const line = getAgentGreeting(agent);
+      playVoice(line.length > 120 ? `${line.slice(0, 120)}…` : line, getAgentVoiceProfile(config.id, agent.id));
+    }
+  }, [busy, selectedAgentId, ttsEnabled, config.id]);
 
   const handleClearChat = () => {
     clearChat(config.id);
@@ -471,32 +488,48 @@ export function AgentChat({
         </div>
       )}
 
-      {/* Compact character picker */}
-      <div className="shrink-0 flex gap-1.5 px-4 pb-2 overflow-x-auto">
-        {config.agents.map(agent => {
-          const active = selectedAgentId === agent.id;
-          const name = displayName(config, agent);
-          return (
-            <motion.button
-              key={agent.id}
-              type="button"
-              onClick={() => setSelectedAgentId(agent.id)}
-              disabled={busy}
-              whileTap={{ scale: 0.97 }}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full cursor-pointer"
-              style={{
-                background: active ? `${agent.color}20` : theme === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
-                border: `1.5px solid ${active ? agent.color : "transparent"}`,
-                opacity: busy ? 0.6 : 1,
-              }}
-            >
-              <CharacterAvatar emoji={getAgentAvatar(config.id, agent.id)} color={agent.color} size={26} active={active} />
-              <span className="text-[11px] font-medium" style={{ color: active ? agent.color : "var(--text-secondary)" }}>
-                {name}
-              </span>
-            </motion.button>
-          );
-        })}
+      {/* Role picker — male / female voices */}
+      <div className="shrink-0 px-4 pb-2">
+        <div className="text-[9px] uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)", fontFamily: "'DM Mono', monospace" }}>
+          Choose your guide
+        </div>
+        <div className="flex gap-2">
+          {config.agents.map(agent => {
+            const active = selectedAgentId === agent.id;
+            const gender = getAgentGender(config.id, agent.id);
+            return (
+              <motion.button
+                key={agent.id}
+                type="button"
+                onClick={() => switchAgent(agent)}
+                disabled={busy}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl cursor-pointer text-left min-w-0"
+                style={{
+                  background: active ? `${agent.color}22` : theme === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                  border: `2px solid ${active ? agent.color : "transparent"}`,
+                  opacity: busy ? 0.6 : 1,
+                  boxShadow: active ? `0 0 16px ${agent.color}33` : "none",
+                }}
+              >
+                <div className="flex items-center gap-2 w-full min-w-0">
+                  <CharacterAvatar emoji={getAgentAvatar(config.id, agent.id)} color={agent.color} size={32} active={active} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base leading-none">{genderIcon(gender)}</span>
+                      <span className="text-[13px] font-semibold truncate" style={{ color: active ? agent.color : "var(--text-primary)" }}>
+                        {agent.name}
+                      </span>
+                    </div>
+                    <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>
+                      {genderLabel(gender)} · {agent.role}
+                    </div>
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Messages — main scroll area */}
@@ -552,7 +585,7 @@ export function AgentChat({
                 </div>
                 {msg.funFact && !msg.streaming && (
                   <FunFactCard accentColor={config.accentColor} theme={theme}>
-                    <span style={{ color: config.accentColor, fontWeight: 600 }}>Did you know? </span>
+                    <span style={{ color: config.accentColor, fontWeight: 600 }}>Plot twist: </span>
                     {msg.funFact}
                   </FunFactCard>
                 )}

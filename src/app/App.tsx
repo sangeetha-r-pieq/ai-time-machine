@@ -7,7 +7,7 @@ import { AgentChat } from "./components/AgentChat";
 import { getEraConfig, formatYear, type EraId } from "./components/era-config";
 import { useWideLayout } from "./hooks/useWideLayout";
 import { getEraBackgroundUrl } from "./components/india-content";
-import { startAmbient, stopAmbient, playArrivalSound } from "./components/sounds";
+import { stopAmbient, playArrivalSound } from "./components/sounds";
 import { fireStampCelebration, fireSouvenirCelebration, fireCompleteCollectionCelebration } from "./components/celebrations";
 import { X, Lock, Compass } from "lucide-react";
 
@@ -179,10 +179,8 @@ export default function App() {
 
   const handleArrived = () => {
     setPhase("scene");
-    if (!ambientRunning.current) {
-      startAmbient(config.ambientFreq, config.ambientType, config.ambientGain);
-      ambientRunning.current = true;
-    }
+    stopAmbient();
+    ambientRunning.current = false;
     playArrivalSound(config.ambientFreq);
 
     // Auto stamp the passport when arriving at a new era
@@ -229,14 +227,6 @@ export default function App() {
       setTimeout(() => fireCompleteCollectionCelebration(), 800);
     }
   };
-
-  // Update ambient when era changes while in scene
-  useEffect(() => {
-    if (phase === "scene") {
-      startAmbient(config.ambientFreq, config.ambientType, config.ambientGain);
-      ambientRunning.current = true;
-    }
-  }, [config.id]);
 
   const ERAS_LIST = [
     { id: "prehistoric", name: "Prehistoric Era", period: "Before 3,000 BC" },

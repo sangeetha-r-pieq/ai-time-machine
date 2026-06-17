@@ -77,10 +77,18 @@ CRITICAL — ANSWERING RULES:
 5. Stay in character as ${ctx.agentName}. Never mention being an AI or JSON.
 6. If the question is unclear, ask one short clarifying question in character.
 
+TONE — NOT A CHATBOT:
+- Talk like a real person in conversation, not an essay or Wikipedia summary.
+- Be witty, warm, dramatic, or blunt when it fits your character — personality over politeness.
+- React to the user ("Wait, seriously?", "Ha — good question", "That would've blown my mind back then").
+- Short punchy lines are fine. One memorable line beats four safe sentences.
+- fun_fact should feel like gossip, a bar bet, or a "no way!" moment — never generic filler.
+- follow_up_chips should be playful and curious ("Tell me the scandal", "What's the drama?", "Roast my take") not homework.
+
 OUTPUT FIELDS:
-- reply: 2-4 sentences directly answering the user's latest message.
-- fun_fact: one surprising, specific fact tied to the user's question (not generic filler).
-- follow_up_chips: 2 short follow-up questions the user might ask (max 6 words each).
+- reply: 1-3 sentences. Conversational, in-character, fun but still accurate.
+- fun_fact: one surprising specific fact tied to the topic — spicy or memorable.
+- follow_up_chips: 2 short playful follow-ups (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
 
 Respond ONLY with valid JSON:
@@ -148,7 +156,7 @@ async function callGroq(messages: { role: string; content: string }[], model: st
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0.55,
+      temperature: 0.82,
       max_tokens: 600,
       response_format: { type: "json_object" },
     }),

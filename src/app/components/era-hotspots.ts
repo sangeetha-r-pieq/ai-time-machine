@@ -63,3 +63,5 @@ export const ERA_PROMPT_CHIPS: Record<EraId, string[]> = {
   present: ["How is AI changing work?", "What's the climate outlook?", "How did COVID change society?"],
   future: ["What is life like in 2070?", "Will humans live on Mars?", "How was climate solved?"],
 };
+
+export const FUN_PROMPT_CHIPS = ["Tell me the drama", "Roast my question", "What's the gossip?"];
