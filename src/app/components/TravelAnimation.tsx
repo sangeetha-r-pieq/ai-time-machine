@@ -151,68 +151,7 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
         />
       )}
 
-      {/* ── Pulsing time vortex rings ── */}
-      {[1, 2, 3, 4].map(ring => (
-        <motion.div
-          key={`vortex-${ring}`}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            width: ring * 160,
-            height: ring * 160,
-            border: `1.5px solid ${vortexColor}`,
-            left: "50%",
-            top: "42%",
-            transform: "translate(-50%, -50%)",
-          }}
-          animate={{
-            scale: forward ? [0.4, 1.8] : [1.8, 0.4],
-            opacity: [0, 0.7, 0],
-          }}
-          transition={{
-            duration: 1.6,
-            repeat: Infinity,
-            delay: ring * 0.35,
-            ease: "easeOut",
-          }}
-        />
-      ))}
 
-      {/* ── Radial speed streaks (exploding for forward, imploding/sucking for backward) ── */}
-      {Array.from({ length: 24 }).map((_, i) => {
-        const angle = (i / 24) * 360;
-        return (
-          <div
-            key={`radial-${i}`}
-            className="absolute pointer-events-none"
-            style={{
-              left: "50%",
-              top: "42%",
-              transformOrigin: "top center",
-              transform: `rotate(${angle}deg)`,
-            }}
-          >
-            <motion.div
-              style={{
-                width: 2,
-                height: "35vh",
-                background: `linear-gradient(${forward ? "to bottom" : "to top"}, ${streakColor}aa, transparent)`,
-                transformOrigin: "top center",
-              }}
-              animate={{
-                y: forward ? ["0vh", "35vh"] : ["35vh", "0vh"],
-                scaleY: [0, 1.5, 0],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: 0.8 + (i % 4) * 0.15,
-                repeat: Infinity,
-                delay: i * 0.03,
-                ease: forward ? "easeOut" : "easeIn",
-              }}
-            />
-          </div>
-        );
-      })}
 
       {/* ── Stars (move direction matches travel) ── */}
       {Array.from({ length: 40 }).map((_, i) => (
@@ -228,7 +167,8 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
           }}
           animate={{
             opacity: [0.2, 0.9, 0.2],
-            x: forward ? [0, -20] : [0, 20],
+            // Move same direction as the rocket to make direction obvious
+            x: forward ? [0, 20] : [0, -20],
           }}
           transition={{
             duration: 1.5 + (i % 5) * 0.3,
@@ -249,7 +189,8 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
             background: `linear-gradient(90deg, transparent, ${streakColor}${i % 2 === 0 ? "66" : "44"}, transparent)`,
             width: `${20 + (i % 4) * 5}%`,
           }}
-          animate={{ x: forward ? ["120vw", "-40vw"] : ["-40vw", "120vw"] }}
+          // Move same direction as the rocket to make direction obvious
+          animate={{ x: forward ? ["-40vw", "120vw"] : ["120vw", "-40vw"] }}
           transition={{
             duration: 0.7 + i * 0.05,
             repeat: Infinity,
@@ -259,34 +200,6 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
         />
       ))}
 
-      {/* ── Era flipbook cards streaking past ── */}
-      {erasInPath.map((eraId, i) => (
-        <motion.div
-          key={eraId}
-          className="absolute flex flex-col items-center gap-1 pointer-events-none"
-          style={{ top: `${22 + (i % 4) * 14}%` }}
-          initial={{ x: forward ? "110vw" : "-30vw", opacity: 0, rotate: forward ? 8 : -8 }}
-          animate={{ x: forward ? "-30vw" : "110vw", opacity: [0, 1, 1, 0], rotate: 0 }}
-          transition={{ duration: 1.8, delay: i * 0.22, ease: "easeInOut" }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              border: "3px solid #2D3436",
-              borderRadius: 16,
-              padding: "12px 16px",
-              boxShadow: "4px 4px 0 #2D3436",
-              textAlign: "center",
-              minWidth: 80,
-            }}
-          >
-            <div style={{ fontSize: 32 }}>{ERA_EMOJI[eraId]}</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.08em", color: "#555", marginTop: 4, textTransform: "uppercase" }}>
-              {ERA_LABEL[eraId]}
-            </div>
-          </div>
-        </motion.div>
-      ))}
 
       {/* ── Flying rocket ── */}
       <motion.div
@@ -299,36 +212,6 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
         <TimeRocket accent={destEra.accentColor} flipped={!forward} />
       </motion.div>
 
-      {/* ── Center flipbook highlight ── */}
-      <AnimatePresence mode="wait">
-        {erasInPath.length > 0 && (
-          <motion.div
-            key={erasInPath[flipIndex]}
-            className="relative z-10 flex flex-col items-center"
-            initial={{ opacity: 0, scale: 0.5, rotate: forward ? -10 : 10 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 1.2, rotate: forward ? 10 : -10 }}
-            transition={{ duration: 0.25 }}
-            style={{ marginTop: "18vh" }}
-          >
-            <div
-              style={{
-                background: "#fff",
-                border: "3px solid #2D3436",
-                borderRadius: 20,
-                padding: "16px 24px",
-                boxShadow: "5px 5px 0 #2D3436",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 48 }}>{ERA_EMOJI[erasInPath[flipIndex]]}</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.15em", color: destEra.accentColor, marginTop: 6, textTransform: "uppercase" }}>
-                {ERA_LABEL[erasInPath[flipIndex]]}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Year odometer ── */}
       <motion.div className="relative z-30 text-center" style={{ marginTop: "auto", marginBottom: "12vh" }}>
@@ -364,29 +247,7 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
         </motion.div>
       </motion.div>
 
-      {/* ── Sepia vignette overlay (backward only) ── */}
-      {!forward && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none z-[2]"
-          style={{
-            background: "radial-gradient(ellipse at center, transparent 40%, rgba(139,69,19,0.25) 100%)",
-          }}
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-      )}
 
-      {/* ── Cool edge glow (forward only) ── */}
-      {forward && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none z-[2]"
-          style={{
-            background: "radial-gradient(ellipse at center, transparent 50%, rgba(6,182,212,0.12) 100%)",
-          }}
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-      )}
     </motion.div>
   );
 }
