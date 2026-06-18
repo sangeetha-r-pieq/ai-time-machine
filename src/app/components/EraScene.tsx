@@ -205,29 +205,51 @@ interface Props {
   year: number;
   backgroundUrl?: string;
   isTalking?: boolean;
+  activeAgentId?: string;
+  travelForward?: boolean;
   sceneReaction?: number;
   onHotspotLore?: (lore: string) => void;
 }
 
-export function EraScene({ config, year, backgroundUrl, isTalking = false, sceneReaction = 0, onHotspotLore }: Props) {
+export function EraScene({
+  config,
+  year,
+  backgroundUrl,
+  isTalking = false,
+  activeAgentId,
+  travelForward = true,
+  sceneReaction = 0,
+  onHotspotLore,
+}: Props) {
   const isWide = useWideLayout();
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
   const [particleBurst, setParticleBurst] = useState(0);
   const [personWave, setPersonWave] = useState(false);
 
+  const agentId = activeAgentId ?? config.agents[0].id;
+  const isMoving = isTalking || personWave;
+
+  /** Center of visible scene area (left of chat sidebar on wide screens) */
+  const sceneCenter = isWide ? "calc((100% - min(440px, 42vw)) * 0.5)" : "32%";
+  const walkFrom = travelForward ? "18%" : "62%";
+  const walkTo = travelForward ? "62%" : "18%";
+  const idlePos = sceneCenter;
+
   useEffect(() => {
     if (sceneReaction > 0) setParticleBurst(b => b + 2);
   }, [sceneReaction]);
 
   const hotspots = ERA_HOTSPOTS[config.id] ?? [];
+  const hasPhotoBg = Boolean(backgroundUrl);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (hasPhotoBg) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
     const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
     setParallax({ x: x * 12, y: y * 8 });
-  }, []);
+  }, [hasPhotoBg]);
 
   const handleSkyClick = () => {
     setParticleBurst(b => b + 1);
@@ -236,11 +258,12 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
 
   const handlePersonClick = () => {
     setPersonWave(true);
-    const agent = config.agents[0];
+    const agent = config.agents.find(a => a.id === agentId) ?? config.agents[0];
     const line = agent.fallback[Math.floor(Math.random() * agent.fallback.length)];
     onHotspotLore?.(line);
-    setTimeout(() => setPersonWave(false), 1200);
+    setTimeout(() => setPersonWave(false), 2200);
   };
+
   const horizons: Record<string, JSX.Element> = {
     prehistoric: <PrehistoricHorizon dark={config.horizonDark} near={config.horizonNear} />,
     ancient:     <AncientHorizon     dark={config.horizonDark} near={config.horizonNear} />,
@@ -263,7 +286,7 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
       style={{ zIndex: 0 }}
       onMouseMove={handleMouseMove}
     >
-      {/* AI-generated India background */}
+      {/* AI-generated photorealistic background — static, no parallax */}
       {backgroundUrl && (
         <img
           src={backgroundUrl}
@@ -274,19 +297,19 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
         />
       )}
 
-      {/* Sky — clickable for particle burst; tinted overlay when AI bg present */}
+      {/* Sky tint — lighter when photo bg shows through */}
       <div
         className="absolute inset-0 cursor-crosshair"
         style={{
           background: config.skyGradient,
-          opacity: backgroundUrl ? 0.45 : 1,
+          opacity: hasPhotoBg ? 0.12 : 1,
           zIndex: 1,
         }}
         onClick={handleSkyClick}
       />
 
       {/* Atmosphere tint */}
-      {config.atmosphereColor && (
+      {config.atmosphereColor && !hasPhotoBg && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{ background: config.atmosphereColor }}
@@ -295,24 +318,33 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
         />
       )}
 
-      {/* Horizon silhouettes — bottom 30% of scene */}
+      {/* Horizon silhouettes — hidden when photorealistic bg is active */}
+      {!hasPhotoBg && (
       <motion.div
         className="absolute left-0 right-0 pointer-events-none"
-        style={{ bottom: "22%", height: "30%", opacity: backgroundUrl ? 0.55 : 1, zIndex: 2 }}
+        style={{ bottom: "22%", height: "30%", zIndex: 2 }}
         animate={{ x: parallax.x * 0.6, y: parallax.y * 0.4 }}
         transition={{ type: "spring", stiffness: 80, damping: 20 }}
       >
         {horizons[config.id] ?? horizons.present}
       </motion.div>
+      )}
 
-      {/* Ground */}
+      {/* Ground — subtle fade when photo bg */}
       <div
         className="absolute left-0 right-0 bottom-0 pointer-events-none"
-        style={{ height: "22%", background: config.groundGradient }}
+        style={{
+          height: "22%",
+          background: config.groundGradient,
+          opacity: hasPhotoBg ? 0.35 : 1,
+          zIndex: 2,
+        }}
       />
 
-      {/* Particles */}
-      <SceneParticles type={config.particleType} color={config.particleColor} burst={particleBurst} />
+      {/* Particles — subtle over photo backgrounds */}
+      <div style={{ opacity: hasPhotoBg ? 0.2 : 1, position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
+        <SceneParticles type={config.particleType} color={config.particleColor} burst={particleBurst} />
+      </div>
 
       {/* Interactive hotspots */}
       {hotspots.map(spot => (
@@ -358,18 +390,25 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
         </button>
       ))}
 
-      {/* Person — centered, clickable */}
+      {/* Person — cartoon character, era-styled */}
       <motion.div
-        className="absolute z-[4] cursor-pointer"
-        style={{ bottom: "22%", left: "50%", transform: "translateX(-50%)" }}
-        initial={{ opacity: 0, y: 30 }}
+        className="absolute z-[12] cursor-pointer"
+        style={{
+          bottom: isWide ? "8%" : "calc(72vh + 12px)",
+        }}
+        initial={{ opacity: 0, y: 30, left: idlePos, x: "-50%" }}
         animate={{
           opacity: 1,
+          left: isMoving ? [walkFrom, walkTo] : idlePos,
+          x: "-50%",
           y: personWave ? -8 : isTalking ? [0, -3, 0] : 0,
           scale: isTalking ? [1, 1.02, 1] : 1,
         }}
         transition={{
-          opacity: { delay: 0.5, duration: 0.7 },
+          opacity: { delay: 0.3, duration: 0.6 },
+          left: isMoving
+            ? { duration: 3.8, repeat: Infinity, repeatType: "reverse", ease: "linear" }
+            : { duration: 0.6, ease: "easeOut" },
           y: isTalking ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
           scale: isTalking ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
         }}
@@ -380,22 +419,32 @@ export function EraScene({ config, year, backgroundUrl, isTalking = false, scene
           variant={config.personVariant}
           accentColor={config.accentColor}
           isTalking={isTalking || personWave}
-          avatarEmoji={getAgentAvatar(config.id, config.agents[0].id)}
+          avatarEmoji={getAgentAvatar(config.id, agentId)}
         />
       </motion.div>
 
-      {/* Ground shadow under person */}
-      <div
-        className="absolute"
+      {/* Ground shadow */}
+      <motion.div
+        className="absolute pointer-events-none"
         style={{
-          bottom: "22%",
-          left: "50%",
-          transform: "translateX(-50%)",
+          bottom: isWide ? "8%" : "calc(72vh + 12px)",
           width: 60,
           height: 6,
           background: "rgba(0,0,0,0.4)",
           borderRadius: "50%",
           filter: "blur(4px)",
+          zIndex: 11,
+        }}
+        animate={{
+          left: isMoving ? [walkFrom, walkTo] : idlePos,
+          x: "-50%",
+          scaleX: isMoving ? [1, 0.85, 1] : 1,
+        }}
+        transition={{
+          left: isMoving
+            ? { duration: 3.8, repeat: Infinity, repeatType: "reverse", ease: "linear" }
+            : { duration: 0.6, ease: "easeOut" },
+          scaleX: isMoving ? { duration: 3.8, repeat: Infinity, repeatType: "reverse" } : { duration: 0.3 },
         }}
       />
 

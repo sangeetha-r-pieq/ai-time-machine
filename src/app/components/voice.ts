@@ -36,18 +36,81 @@ function pickVoice(profile: AgentVoiceProfile): SpeechSynthesisVoice | undefined
   return scored[0]?.v;
 }
 
-export function playVoice(text: string, profile: AgentVoiceProfile): void {
-  if (!("speechSynthesis" in window) || !text.trim()) return;
+export interface VoiceCallbacks {
+  onStart?: () => void;
+  onEnd?: () => void;
+  /** Fired on each spoken word/syllable — drives live lip-sync */
+  onPulse?: () => void;
+}
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.pitch = profile.pitch;
-  utterance.rate = profile.rate;
+/** Speak text and resolve when finished (or immediately if TTS unavailable). */
+export function playVoice(
+  text: string,
+  profile: AgentVoiceProfile,
+  callbacks?: VoiceCallbacks,
+): Promise<void> {
+  return new Promise(resolve => {
+    if (!("speechSynthesis" in window) || !text.trim()) {
+      resolve();
+      return;
+    }
 
-  const voice = pickVoice(profile);
-  if (voice) utterance.voice = voice;
+    window.speechSynthesis.cancel();
 
-  window.speechSynthesis.speak(utterance);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = profile.pitch;
+    utterance.rate = profile.rate;
+
+    const voice = pickVoice(profile);
+    if (voice) utterance.voice = voice;
+
+    let done = false;
+    let safety: ReturnType<typeof window.setTimeout>;
+    let pulseTimer: ReturnType<typeof window.setInterval>;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(safety);
+      window.clearInterval(pulseTimer);
+      callbacks?.onEnd?.();
+      resolve();
+    };
+
+    safety = window.setTimeout(finish, Math.min(120_000, text.length * 120 + 3000));
+
+    utterance.onstart = () => {
+      callbacks?.onStart?.();
+      pulseTimer = window.setInterval(() => callbacks?.onPulse?.(), 160);
+    };
+    utterance.onboundary = () => callbacks?.onPulse?.();
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+/** Approximate talk duration when TTS is off (ms). */
+export function estimateTalkDuration(text: string): number {
+  return Math.min(6000, Math.max(1200, text.length * 48));
+}
+
+/** Simulate live speech pulses when TTS is disabled. */
+export function simulateSpeechPulses(
+  text: string,
+  callbacks: Pick<VoiceCallbacks, "onStart" | "onEnd" | "onPulse">,
+): Promise<void> {
+  return new Promise(resolve => {
+    const duration = estimateTalkDuration(text);
+    callbacks.onStart?.();
+    const pulseTimer = window.setInterval(() => callbacks.onPulse?.(), 160);
+    window.setTimeout(() => {
+      window.clearInterval(pulseTimer);
+      callbacks.onEnd?.();
+      resolve();
+    }, duration);
+  });
 }
 
 export function stopVoice(): void {

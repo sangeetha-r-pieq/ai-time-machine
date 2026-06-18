@@ -49,7 +49,7 @@ export function YearPicker({
 
   useEffect(() => {
     setBgLoaded(false);
-  }, [backgroundUrl]);
+  }, [era.id]);
 
   const step = (delta: number) => {
     const abs = Math.abs(year);
@@ -115,47 +115,49 @@ export function YearPicker({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7 }}
         >
-          {/* AI India scene */}
+          {/* Photorealistic era background */}
           <img
-            key={backgroundUrl}
+            key={era.id}
             src={backgroundUrl}
             alt=""
             loading="lazy"
             onLoad={() => setBgLoaded(true)}
             className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-            style={{ opacity: bgLoaded ? (theme === "light" ? 0.38 : 0.5) : 0 }}
+            style={{ opacity: bgLoaded ? (theme === "light" ? 0.55 : 0.75) : 0 }}
           />
 
-          {/* Era tint */}
+          {/* Light era tint — photo stays visible */}
           {theme === "light" ? (
             <>
-              <div className="absolute inset-0" style={{ background: `linear-gradient(165deg, ${era.accentColor}14 0%, rgba(255,255,255,0.55) 45%, rgba(248,250,252,0.7) 100%)` }} />
-              <div className="absolute inset-0" style={{ background: era.skyGradient, opacity: 0.05 }} />
+              <div className="absolute inset-0" style={{ background: `linear-gradient(165deg, ${era.accentColor}08 0%, rgba(255,255,255,0.25) 45%, rgba(248,250,252,0.45) 100%)` }} />
+              <div className="absolute inset-0" style={{ background: era.skyGradient, opacity: 0.03 }} />
             </>
           ) : (
             <>
-              <div className="absolute inset-0" style={{ background: era.skyGradient, opacity: 0.55 }} />
-              {era.atmosphereColor && <div className="absolute inset-0" style={{ background: era.atmosphereColor }} />}
+              <div className="absolute inset-0" style={{ background: era.skyGradient, opacity: 0.2 }} />
+              {era.atmosphereColor && <div className="absolute inset-0" style={{ background: era.atmosphereColor, opacity: 0.35 }} />}
             </>
           )}
 
-          <SceneParticles type={era.particleType} color={era.particleColor} />
+          <div style={{ opacity: 0.15, position: "absolute", inset: 0 }}>
+            <SceneParticles type={era.particleType} color={era.particleColor} />
+          </div>
 
-          {/* Readability vignette */}
+          {/* Readability vignette — lighter so photo shows */}
           <div
             className="absolute inset-0"
             style={{
               background: theme === "light"
-                ? "radial-gradient(ellipse 80% 70% at 50% 40%, transparent 30%, rgba(255,255,255,0.75) 100%)"
-                : "radial-gradient(ellipse 80% 70% at 50% 40%, transparent 20%, rgba(5,5,5,0.85) 100%)",
+                ? "radial-gradient(ellipse 80% 70% at 50% 40%, transparent 40%, rgba(255,255,255,0.5) 100%)"
+                : "radial-gradient(ellipse 80% 70% at 50% 40%, transparent 35%, rgba(5,5,5,0.55) 100%)",
             }}
           />
           <div
             className="absolute inset-0"
             style={{
               background: theme === "light"
-                ? "linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, transparent 30%, transparent 60%, rgba(248,250,252,0.9) 100%)"
-                : "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 30%, transparent 55%, rgba(5,5,5,0.95) 100%)",
+                ? "linear-gradient(to bottom, rgba(255,255,255,0.35) 0%, transparent 35%, transparent 65%, rgba(248,250,252,0.75) 100%)"
+                : "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 35%, transparent 55%, rgba(5,5,5,0.8) 100%)",
             }}
           />
         </motion.div>

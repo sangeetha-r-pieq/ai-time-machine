@@ -10,7 +10,7 @@ import { getAgentGender, getAgentVoiceProfile, genderIcon, genderLabel } from ".
 import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
 import { playPingSound, stopAmbient } from "./sounds";
-import { playVoice, stopVoice } from "./voice";
+import { playVoice, stopVoice, simulateSpeechPulses } from "./voice";
 import { fetchAgentChat, streamReplyText, type ChatHistoryItem } from "../api";
 import { useTravel } from "../../context/TravelContext";
 import { getYearContext } from "./year-context";
@@ -27,6 +27,8 @@ interface Props {
   onReturn: () => void;
   onAwardSouvenir?: (eraId: string) => void;
   onAgentSpeaking?: (speaking: boolean) => void;
+  onSpeakPulse?: () => void;
+  onActiveAgentChange?: (agentId: string) => void;
   onSceneReaction?: (reaction: string) => void;
   theme: "light" | "dark";
 }
@@ -46,6 +48,8 @@ export function AgentChat({
   onReturn,
   onAwardSouvenir,
   onAgentSpeaking,
+  onSpeakPulse,
+  onActiveAgentChange,
   onSceneReaction,
   theme,
 }: Props) {
@@ -159,6 +163,30 @@ export function AgentChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy, typingAgent]);
 
+  useEffect(() => {
+    onActiveAgentChange?.(selectedAgentId);
+  }, [selectedAgentId, onActiveAgentChange]);
+
+  const speakWithScene = useCallback(async (text: string, agent: Agent) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    if (ttsEnabled) {
+      await playVoice(trimmed, getAgentVoiceProfile(config.id, agent.id), {
+        onStart: () => onAgentSpeaking?.(true),
+        onEnd: () => onAgentSpeaking?.(false),
+        onPulse: () => onSpeakPulse?.(),
+      });
+      return;
+    }
+
+    await simulateSpeechPulses(trimmed, {
+      onStart: () => onAgentSpeaking?.(true),
+      onEnd: () => onAgentSpeaking?.(false),
+      onPulse: () => onSpeakPulse?.(),
+    });
+  }, [ttsEnabled, config.id, onAgentSpeaking, onSpeakPulse]);
+
   useEffect(() => () => {
     stopVoice();
     onAgentSpeaking?.(false);
@@ -207,7 +235,6 @@ export function AgentChat({
     }
     setBusy(true);
     setTypingAgent(selectedAgent.name);
-    onAgentSpeaking?.(true);
 
     updateMemory(`lastQuestion-${config.id}`, trimmed);
     updateMemory(`visited-${config.id}`, year);
@@ -283,9 +310,7 @@ export function AgentChat({
     setFollowUpChips(response.follow_up_chips);
     playPingSound(config.ambientFreq * 2);
 
-    if (ttsEnabled) {
-      playVoice(response.reply, getAgentVoiceProfile(config.id, selectedAgent.id));
-    }
+    await speakWithScene(response.reply, selectedAgent);
 
     if (response.scene_reaction && response.scene_reaction !== "none") {
       onSceneReaction?.(response.scene_reaction);
@@ -299,22 +324,20 @@ export function AgentChat({
 
     setTypingAgent(null);
     setBusy(false);
-    onAgentSpeaking?.(false);
   }, [
     busy, messages, selectedAgent, config, year, yearContext, mission, hotspots,
-    missionComplete, buildHistory, onAwardSouvenir, onAgentSpeaking, onSceneReaction,
-    ttsEnabled, state, updateMemory, addJourney,
+    missionComplete, buildHistory, onAwardSouvenir, onSceneReaction,
+    speakWithScene, state, updateMemory, addJourney,
   ]);
 
   const switchAgent = useCallback((agent: Agent) => {
     if (busy || agent.id === selectedAgentId) return;
     stopVoice();
+    onAgentSpeaking?.(false);
     setSelectedAgentId(agent.id);
-    if (ttsEnabled) {
-      const line = getAgentGreeting(agent);
-      playVoice(line.length > 120 ? `${line.slice(0, 120)}…` : line, getAgentVoiceProfile(config.id, agent.id));
-    }
-  }, [busy, selectedAgentId, ttsEnabled, config.id]);
+    const line = getAgentGreeting(agent);
+    void speakWithScene(line.length > 120 ? `${line.slice(0, 120)}…` : line, agent);
+  }, [busy, selectedAgentId, speakWithScene, onAgentSpeaking]);
 
   const handleClearChat = () => {
     clearChat(config.id);

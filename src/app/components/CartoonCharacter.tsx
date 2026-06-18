@@ -100,7 +100,6 @@ function Accessories({ variant, accent }: { variant: PersonVariant; accent: stri
       </>
     );
   }
-  // modern / digital
   return (
     <>
       <path d="M 28 58 L 22 88 L 32 88 Z" fill={accent} stroke={OUTLINE} strokeWidth="2" opacity="0.8" />
