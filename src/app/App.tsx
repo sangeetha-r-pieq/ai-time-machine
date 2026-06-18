@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { YearPicker } from "./components/YearPicker";
 import { TravelAnimation } from "./components/TravelAnimation";
@@ -111,7 +111,18 @@ export default function App() {
   const [year, setYear] = useState(2026);
   const [travelFromYear, setTravelFromYear] = useState(2026);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
+  const [speakPulse, setSpeakPulse] = useState(0);
+  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  const [travelForward, setTravelForward] = useState(true);
   const [sceneReaction, setSceneReaction] = useState(0);
+  const handleAgentSpeaking = useCallback((speaking: boolean) => {
+    setAgentSpeaking(speaking);
+    if (!speaking) setSpeakPulse(0);
+  }, []);
+
+  const handleSpeakPulse = useCallback(() => {
+    setSpeakPulse(p => p + 1);
+  }, []);
   const [souvenirReveal, setSouvenirReveal] = useState<Souvenir | null>(null);
   const ambientRunning = useRef(false);
 
@@ -172,6 +183,7 @@ export default function App() {
   const config = getEraConfig(year);
 
   const handleJump = (y: number) => {
+    setTravelForward(y >= year);
     setTravelFromYear(year);
     setYear(y);
     setPhase("traveling");
@@ -273,6 +285,8 @@ export default function App() {
               year={year}
               backgroundUrl={getEraBackgroundUrl(config.id, year)}
               isTalking={agentSpeaking}
+              activeAgentId={activeAgentId ?? config.agents[0].id}
+              travelForward={travelForward}
               sceneReaction={sceneReaction}
             />
 
@@ -318,7 +332,9 @@ export default function App() {
               year={year}
               onReturn={handleReturn}
               onAwardSouvenir={handleAwardSouvenir}
-              onAgentSpeaking={setAgentSpeaking}
+              onAgentSpeaking={handleAgentSpeaking}
+              onSpeakPulse={handleSpeakPulse}
+              onActiveAgentChange={setActiveAgentId}
               onSceneReaction={() => setSceneReaction(n => n + 1)}
               theme={theme}
             />

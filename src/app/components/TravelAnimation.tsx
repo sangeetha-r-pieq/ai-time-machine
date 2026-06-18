@@ -53,7 +53,6 @@ function TimeRocket({ accent, flipped }: { accent: string; flipped?: boolean }) 
           x: { duration: 0.15, repeat: Infinity, ease: "linear" },
         }}
       >
-        {/* Flame */}
         <motion.ellipse
           cx="18" cy="52" rx="10" ry="14"
           fill="#FF6B35"
@@ -66,20 +65,15 @@ function TimeRocket({ accent, flipped }: { accent: string; flipped?: boolean }) 
           animate={{ rx: [4, 7, 4] }}
           transition={{ duration: 0.25, repeat: Infinity }}
         />
-        {/* Body */}
         <ellipse cx="55" cy="48" rx="42" ry="28" fill={accent} stroke="#2D3436" strokeWidth="3" />
-        {/* Tricolor stripe */}
         <rect x="28" y="44" width="54" height="6" fill="#FF9933" stroke="#2D3436" strokeWidth="1" />
         <rect x="28" y="50" width="54" height="6" fill="#fff" stroke="#2D3436" strokeWidth="1" />
         <rect x="28" y="56" width="54" height="6" fill="#138808" stroke="#2D3436" strokeWidth="1" />
-        {/* Window / clock */}
         <circle cx="72" cy="42" r="14" fill="#E3F2FD" stroke="#2D3436" strokeWidth="2.5" />
         <circle cx="72" cy="42" r="2" fill="#2D3436" />
         <line x1="72" y1="42" x2="72" y2="33" stroke="#2D3436" strokeWidth="2" strokeLinecap="round" />
         <line x1="72" y1="42" x2="78" y2="45" stroke="#2D3436" strokeWidth="1.5" strokeLinecap="round" />
-        {/* Nose cone */}
         <polygon points="97,48 130,48 115,28" fill="#FF6B35" stroke="#2D3436" strokeWidth="2.5" strokeLinejoin="round" />
-        {/* Fin */}
         <polygon points="30,58 18,72 30,68" fill="#455A64" stroke="#2D3436" strokeWidth="2" />
         <polygon points="30,38 18,24 30,28" fill="#455A64" stroke="#2D3436" strokeWidth="2" />
       </motion.g>
@@ -93,6 +87,7 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
 
   const destEra = getEraConfig(year);
   const fromEra = getEraConfig(fromYear);
+  const forward = year >= fromYear;
 
   const erasInPath = useMemo(() => {
     const fromIdx = ERA_ORDER.indexOf(fromEra.id);
@@ -125,8 +120,6 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, fromYear, erasInPath.length]);
-
-  const forward = year >= fromYear;
 
   // ── Direction-based palettes ──────────────────────────────────────────
   const bgGradient = forward
@@ -324,7 +317,7 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
                 border: "3px solid #2D3436",
                 borderRadius: 20,
                 padding: "16px 24px",
-                boxShadow: `5px 5px 0 #2D3436`,
+                boxShadow: "5px 5px 0 #2D3436",
                 textAlign: "center",
               }}
             >

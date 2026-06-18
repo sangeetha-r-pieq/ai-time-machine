@@ -29,40 +29,213 @@ export function getAgentAvatar(eraId: EraId, agentId: string): string {
   return AGENT_AVATARS[`${eraId}-${agentId}`] ?? "🧑";
 }
 
+/** Photorealistic head-and-shoulders portraits — live video-call style per agent */
+const AGENT_PORTRAIT_PROMPTS: Record<string, string> = {
+  "prehistoric-elder":
+    "photorealistic elderly prehistoric forest dweller, weathered face, animal hide cloak, looking at camera, head and shoulders portrait, campfire warm light",
+  "prehistoric-historian":
+    "photorealistic female paleoanthropologist, field jacket, looking at camera, head and shoulders portrait, natural outdoor light",
+  "ancient-scribe":
+    "photorealistic ancient Egyptian royal scribe, white linen, looking at camera, head and shoulders portrait, temple blur background",
+  "ancient-historian":
+    "photorealistic female Egyptologist, sun hat, looking at camera, head and shoulders portrait, archaeological site blur",
+  "classical-local":
+    "photorealistic ancient Athenian merchant, chiton, looking at camera, head and shoulders portrait, Mediterranean light",
+  "classical-historian":
+    "photorealistic male ancient Greek scholar, looking at camera, head and shoulders portrait, marble blur background",
+  "medieval-monk":
+    "photorealistic medieval Benedictine monk, brown robes, tonsure, looking at camera, head and shoulders portrait",
+  "medieval-historian":
+    "photorealistic female medieval history professor, academic robes, looking at camera, head and shoulders portrait",
+  "industrial-foreman":
+    "photorealistic Victorian factory foreman, soot-stained waistcoat, flat cap, looking at camera, sepia head and shoulders portrait",
+  "industrial-historian":
+    "photorealistic male Victorian scholar, frock coat, looking at camera, head and shoulders portrait",
+  "wartime-soldier":
+    "photorealistic British WWII soldier 1944, helmet, looking at camera, black and white head and shoulders portrait",
+  "wartime-historian":
+    "photorealistic female 1940s historian, wool coat, looking at camera, head and shoulders portrait",
+  "analog-local":
+    "photorealistic NASA secretary woman 1969, vintage hairstyle, looking at camera, Kodachrome head and shoulders portrait",
+  "analog-historian":
+    "photorealistic male MIT scientist 1970s, tweed jacket, looking at camera, head and shoulders portrait",
+  "digital-dev":
+    "photorealistic 1990s tech worker, flannel shirt, CRT glow on face, looking at camera, head and shoulders portrait",
+  "digital-historian":
+    "photorealistic female Stanford professor 1990s, blazer, looking at camera, head and shoulders portrait",
+  "present-citizen":
+    "photorealistic modern software engineer, casual hoodie, looking at camera, head and shoulders portrait, city blur",
+  "present-analyst":
+    "photorealistic professional woman technology analyst, blazer, looking at camera, head and shoulders portrait",
+  "future-guide":
+    "photorealistic near-future human, sleek practical clothing, subtle wearable tech, looking at camera, head and shoulders portrait",
+  "future-human":
+    "photorealistic female near-future historian, practical futuristic clothing, looking at camera, head and shoulders portrait",
+};
+
+const PORTRAIT_SEEDS: Record<string, number> = {
+  "prehistoric-elder": 52001,
+  "prehistoric-historian": 52002,
+  "ancient-scribe": 52003,
+  "ancient-historian": 52004,
+  "classical-local": 52005,
+  "classical-historian": 52006,
+  "medieval-monk": 52007,
+  "medieval-historian": 52008,
+  "industrial-foreman": 52009,
+  "industrial-historian": 52010,
+  "wartime-soldier": 52011,
+  "wartime-historian": 52012,
+  "analog-local": 52013,
+  "analog-historian": 52014,
+  "digital-dev": 52015,
+  "digital-historian": 52016,
+  "present-citizen": 52017,
+  "present-analyst": 52018,
+  "future-guide": 52019,
+  "future-human": 52020,
+};
+
+const PORTRAIT_STYLE =
+  "ultra photorealistic, shot on 85mm portrait lens, natural skin pores and texture, sharp eyes, head and shoulders, looking at camera, conversational pose, soft neutral background blur, documentary photograph, no text, no watermark";
+
+const LIVE_PORTRAIT_STYLE =
+  "ultra photorealistic webcam portrait, natural skin, sharp eyes, head and shoulders, looking directly at camera as if on video call, soft background blur, no text";
+
+const PORTRAIT_NEGATIVE =
+  "cartoon, anime, illustration, painting, drawing, sketch, 3d render, disney, pixar, cute, chibi, big eyes, animated movie, cel shaded, multiple people, crowd, blurry, deformed, extra limbs, text, watermark, logo";
+
+/** One representative realistic traveler per era (journey animation + previews) */
+const ERA_TRAVELER_PROMPTS: Record<EraId, string> = {
+  prehistoric:
+    "photorealistic prehistoric forest dweller hunter gatherer, weathered skin, animal hide clothing, barefoot, walking on dirt path, documentary photograph",
+  ancient:
+    "photorealistic ancient Egyptian farmer in linen kilt, Nile village, walking, documentary photograph",
+  classical:
+    "photorealistic ancient Greek citizen in chiton, walking marble street, documentary photograph",
+  medieval:
+    "photorealistic medieval European peasant in wool tunic, walking muddy village road, documentary photograph",
+  industrial:
+    "photorealistic Victorian factory worker in soot-stained clothes, walking industrial street, sepia documentary photograph",
+  wartime:
+    "photorealistic WWII civilian in wool coat, walking damaged European street, black and white documentary photograph",
+  analog:
+    "photorealistic 1960s NASA technician in work clothes, walking launch pad, Kodachrome documentary photograph",
+  digital:
+    "photorealistic 1990s office worker in casual shirt, walking tech campus, documentary photograph",
+  present:
+    "photorealistic modern everyday person in casual clothes, walking city sidewalk, contemporary documentary photograph",
+  future:
+    "photorealistic near-future citizen in practical smart clothing, walking sustainable city plaza, cinematic documentary photograph",
+};
+
+const TRAVELER_SEEDS: Record<EraId, number> = {
+  prehistoric: 53001,
+  ancient: 53002,
+  classical: 53003,
+  medieval: 53004,
+  industrial: 53005,
+  wartime: 53006,
+  analog: 53007,
+  digital: 53008,
+  present: 53009,
+  future: 53010,
+};
+
+export function getEraTravelerPortraitUrl(eraId: EraId, year: number): string {
+  const base = ERA_TRAVELER_PROMPTS[eraId];
+  const prompt = `${base}, historical year ${year}, ${PORTRAIT_STYLE}`;
+  const seed = TRAVELER_SEEDS[eraId];
+  const params = new URLSearchParams({
+    width: "512",
+    height: "768",
+    nologo: "true",
+    seed: String(seed),
+    model: "flux",
+    negative: PORTRAIT_NEGATIVE,
+  });
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+}
+
+export function getAgentPortraitUrl(eraId: EraId, agentId: string, year: number): string {
+  const key = `${eraId}-${agentId}`;
+  const base =
+    AGENT_PORTRAIT_PROMPTS[key] ??
+    `photorealistic historically accurate person from ${eraId} era, era-appropriate clothing and appearance`;
+  const prompt = `${base}, historical year ${year}, ${LIVE_PORTRAIT_STYLE}`;
+  const seed = PORTRAIT_SEEDS[key] ?? ERA_SEEDS[eraId] + 1000;
+  const params = new URLSearchParams({
+    width: "480",
+    height: "640",
+    nologo: "true",
+    seed: String(seed),
+    model: "flux",
+    negative: PORTRAIT_NEGATIVE,
+  });
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+}
+
+/** Photorealistic scene prompts — one stable look per era */
 const ERA_BG_PROMPTS: Record<EraId, string> = {
   prehistoric:
-    "prehistoric cave shelter with fire and hunters, mammoth hills in distance, golden sunset, flat cartoon illustration",
+    "photorealistic prehistoric river valley at golden hour, campfire smoke, distant mammoth herd on grassy hills, misty atmosphere, documentary wildlife photography",
   ancient:
-    "ancient Egypt pyramids and Nile river foreground, desert horizon, warm illustrated landscape",
+    "photorealistic ancient Egypt pyramids and Nile river at sunrise, desert heat haze, archaeological documentary photograph, wide cinematic landscape",
   classical:
-    "classical Athens agora and Parthenon on hill, Mediterranean sea in distance, golden hour illustration",
+    "photorealistic ancient Athens Parthenon on acropolis hill, Mediterranean blue sky, marble temples, historical documentary photograph, natural daylight",
   medieval:
-    "medieval castle and cathedral on hill, village below, distant trade road, golden hour illustration",
+    "photorealistic medieval European castle and cathedral on hilltop, village in valley, morning fog, historical documentary aerial photograph",
   industrial:
-    "industrial Manchester factory smokestacks and railway, Victorian city skyline, atmospheric illustration",
+    "photorealistic Victorian industrial Manchester cityscape, factory smokestacks, railway bridge, overcast sky, sepia-toned historical documentary photo",
   wartime:
-    "WWII European frontline town rubble, searchlights in sky, cinematic historical illustration",
+    "photorealistic WWII European ruined town street, damaged buildings, overcast sky, black and white historical war documentary photograph",
   analog:
-    "NASA Apollo launch pad and mission control vibe, 1969 retro space age illustration",
+    "photorealistic NASA Apollo era launch pad at Cape Kennedy 1969, rocket on pad, technicians in distance, Kodachrome documentary photograph",
   digital:
-    "1990s dot-com office with CRT monitors and server racks, neon digital age illustration",
+    "photorealistic 1990s computer server room and office, CRT monitors, beige computers, fluorescent lighting, documentary tech photography",
   present:
-    "modern global city skyline at dusk, technology and transit, 2020s vibrant illustration",
+    "photorealistic modern global city skyline at blue hour, glass towers, traffic light trails, contemporary urban documentary photograph",
   future:
-    "futuristic arcology towers and orbital habitats, sci-fi 2070 illustration",
+    "photorealistic futuristic sustainable megacity at dusk, green arcology towers, clean transit, cinematic sci-fi documentary photograph, realistic lighting",
+};
+
+/** Fixed seed per era — stable image, no flicker when year changes within era */
+const ERA_SEEDS: Record<EraId, number> = {
+  prehistoric: 41001,
+  ancient: 41002,
+  classical: 41003,
+  medieval: 41004,
+  industrial: 41005,
+  wartime: 41006,
+  analog: 41007,
+  digital: 41008,
+  present: 41009,
+  future: 41010,
 };
 
 const BG_STYLE =
-  "flat cartoon background art, rich colors, cinematic wide 16:9, no text, no watermark";
+  "ultra photorealistic, shot on 35mm film, natural lighting, sharp focus, high detail, cinematic wide 16:9, no text, no watermark";
+
+const BG_NEGATIVE =
+  "cartoon, anime, illustration, painting, drawing, sketch, cel shaded, 3d render, blurry, low quality, deformed, text, watermark, logo";
 
 /**
  * Returns a URL for the era background.
  * Uses Pollinations with seed-based caching for the styled cartoon background.
  */
 export function getEraBackgroundUrl(eraId: EraId, year: number): string {
-  const base = ERA_BG_PROMPTS[eraId] ?? "historical landscape, era-appropriate architecture, illustrated scene";
-  const prompt = `${base}, year ${year}, ${BG_STYLE}`;
-  return pollinationsUrl(prompt, { width: 960, height: 540 });
+  const base = ERA_BG_PROMPTS[eraId] ?? "photorealistic historical landscape, era-appropriate architecture, documentary photograph";
+  const prompt = `${base}, historical year ${year}, ${BG_STYLE}`;
+  const seed = ERA_SEEDS[eraId] ?? 42;
+  const params = new URLSearchParams({
+    width: "1280",
+    height: "720",
+    nologo: "true",
+    seed: String(seed),
+    model: "flux",
+    negative: BG_NEGATIVE,
+  });
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
 /**

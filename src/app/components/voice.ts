@@ -36,63 +36,86 @@ function pickVoice(profile: AgentVoiceProfile): SpeechSynthesisVoice | undefined
   return scored[0]?.v;
 }
 
-let activeOnEnd: (() => void) | null = null;
+export interface VoiceCallbacks {
+  onStart?: () => void;
+  onEnd?: () => void;
+  /** Fired on each spoken word/syllable — drives live lip-sync */
+  onPulse?: () => void;
+}
 
+/** Speak text and resolve when finished (or immediately if TTS unavailable). */
 export function playVoice(
   text: string,
   profile: AgentVoiceProfile,
-  onStart?: () => void,
-  onEnd?: () => void
-): void {
-  if (!("speechSynthesis" in window) || !text.trim()) {
-    if (onEnd) onEnd();
-    return;
-  }
-
-  if (activeOnEnd) {
-    try {
-      activeOnEnd();
-    } catch (e) {
-      console.error("Error in previous voice onEnd:", e);
+  callbacks?: VoiceCallbacks,
+): Promise<void> {
+  return new Promise(resolve => {
+    if (!("speechSynthesis" in window) || !text.trim()) {
+      callbacks?.onEnd?.();
+      resolve();
+      return;
     }
-  }
 
-  window.speechSynthesis.cancel();
-  activeOnEnd = onEnd || null;
+    window.speechSynthesis.cancel();
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.pitch = profile.pitch;
-  utterance.rate = profile.rate;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = profile.pitch;
+    utterance.rate = profile.rate;
 
-  const voice = pickVoice(profile);
-  if (voice) utterance.voice = voice;
+    const voice = pickVoice(profile);
+    if (voice) utterance.voice = voice;
 
-  if (onStart) utterance.onstart = onStart;
+    let done = false;
+    let safety: ReturnType<typeof window.setTimeout>;
+    let pulseTimer: ReturnType<typeof window.setInterval>;
 
-  const handleEnd = () => {
-    if (activeOnEnd === onEnd) {
-      activeOnEnd = null;
-    }
-    if (onEnd) onEnd();
-  };
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(safety);
+      window.clearInterval(pulseTimer);
+      callbacks?.onEnd?.();
+      resolve();
+    };
 
-  utterance.onend = handleEnd;
-  utterance.onerror = handleEnd;
+    safety = window.setTimeout(finish, Math.min(120_000, text.length * 120 + 3000));
 
-  window.speechSynthesis.speak(utterance);
+    utterance.onstart = () => {
+      callbacks?.onStart?.();
+      pulseTimer = window.setInterval(() => callbacks?.onPulse?.(), 160);
+    };
+    utterance.onboundary = () => callbacks?.onPulse?.();
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+/** Approximate talk duration when TTS is off (ms). */
+export function estimateTalkDuration(text: string): number {
+  return Math.min(6000, Math.max(1200, text.length * 48));
+}
+
+/** Simulate live speech pulses when TTS is disabled. */
+export function simulateSpeechPulses(
+  text: string,
+  callbacks: Pick<VoiceCallbacks, "onStart" | "onEnd" | "onPulse">,
+): Promise<void> {
+  return new Promise(resolve => {
+    const duration = estimateTalkDuration(text);
+    callbacks.onStart?.();
+    const pulseTimer = window.setInterval(() => callbacks.onPulse?.(), 160);
+    window.setTimeout(() => {
+      window.clearInterval(pulseTimer);
+      callbacks.onEnd?.();
+      resolve();
+    }, duration);
+  });
 }
 
 export function stopVoice(): void {
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
-  }
-  if (activeOnEnd) {
-    const cb = activeOnEnd;
-    activeOnEnd = null;
-    try {
-      cb();
-    } catch (e) {
-      console.error("Error in stopVoice callback:", e);
-    }
   }
 }
