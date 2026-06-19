@@ -1,38 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { formatYear, getEraConfig, type EraId } from "./era-config";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { formatYear, getEraConfig } from "./era-config";
 import { playTravelSound } from "./sounds";
-
-const ERA_ORDER: EraId[] = [
-  "prehistoric", "ancient", "classical", "medieval", "industrial",
-  "wartime", "analog", "digital", "present", "future",
-];
-
-const ERA_EMOJI: Record<EraId, string> = {
-  prehistoric: "🏔️",
-  ancient: "🏺",
-  classical: "☸️",
-  medieval: "🕌",
-  industrial: "🚂",
-  wartime: "🇮🇳",
-  analog: "🚀",
-  digital: "💻",
-  present: "🤖",
-  future: "🔮",
-};
-
-const ERA_LABEL: Record<EraId, string> = {
-  prehistoric: "Prehistoric",
-  ancient: "Ancient World",
-  classical: "Classical",
-  medieval: "Medieval",
-  industrial: "Industrial",
-  wartime: "World Wars",
-  analog: "Space Age",
-  digital: "Digital Age",
-  present: "Present Day",
-  future: "Future",
-};
 
 interface Props {
   year: number;
@@ -83,20 +52,9 @@ function TimeRocket({ accent, flipped }: { accent: string; flipped?: boolean }) 
 
 export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
   const [displayYear, setDisplayYear] = useState(fromYear);
-  const [flipIndex, setFlipIndex] = useState(0);
 
   const destEra = getEraConfig(year);
-  const fromEra = getEraConfig(fromYear);
   const forward = year >= fromYear;
-
-  const erasInPath = useMemo(() => {
-    const fromIdx = ERA_ORDER.indexOf(fromEra.id);
-    const toIdx = ERA_ORDER.indexOf(destEra.id);
-    const start = Math.min(fromIdx, toIdx);
-    const end = Math.max(fromIdx, toIdx);
-    const slice = ERA_ORDER.slice(start, end + 1);
-    return fromYear <= year ? slice : [...slice].reverse();
-  }, [fromEra.id, destEra.id, fromYear, year]);
 
   useEffect(() => {
     playTravelSound();
@@ -107,9 +65,6 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
       const t = step / steps;
       const eased = 1 - Math.pow(1 - t, 3);
       setDisplayYear(Math.round(fromYear + (year - fromYear) * eased));
-      if (erasInPath.length > 1) {
-        setFlipIndex(Math.min(erasInPath.length - 1, Math.floor(eased * erasInPath.length)));
-      }
       if (step >= steps) clearInterval(interval);
     }, 170);
 
@@ -118,8 +73,7 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
       clearInterval(interval);
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, fromYear, erasInPath.length]);
+  }, [year, fromYear, onComplete]);
 
   // ── Direction-based palettes ──────────────────────────────────────────
   const bgGradient = forward
@@ -128,7 +82,6 @@ export function TravelAnimation({ year, fromYear = 2026, onComplete }: Props) {
 
   const streakColor = forward ? "#38bdf8" : "#f59e0b";    // cyan vs amber
   const glowColor   = forward ? "#06b6d4" : "#d97706";
-  const vortexColor = forward ? "rgba(56,189,248,0.12)" : "rgba(245,158,11,0.12)";
 
   return (
     <motion.div
