@@ -15,6 +15,7 @@ export interface ChatResponse {
   follow_up_chips: string[];
   scene_reaction: "none" | "fire" | "stars" | "snow" | "digital" | "spark";
   image_prompt?: string;
+  image_keyword?: string;
 }
 
 export interface ChatRequestContext {
@@ -113,9 +114,10 @@ OUTPUT FIELDS:
 - follow_up_chips: 2 short playful follow-ups (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
 - image_prompt: a descriptive 8-15 word prompt for generating an image showing the subject/events mentioned in the reply. Must be historical, specific, realistic/period-appropriate (e.g. "old polaroid photo of a 1990s desktop computer, warm lighting"). Do not include any text or watermark.
+- image_keyword: a 1-3 word specific noun or proper noun from your reply to use for a Wikipedia image search (e.g., "Royal Challengers Bengaluru", "Apollo 11", "Marilyn Monroe"). Use exact names.
 
 Respond ONLY with valid JSON:
-{"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none","image_prompt":"..."}`;
+{"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none","image_prompt":"...","image_keyword":"..."}`;
 }
 
 function buildMessages(ctx: ChatRequestContext) {
@@ -157,6 +159,7 @@ function parseResponse(raw: string): ChatResponse {
       : [],
     scene_reaction: (parsed.scene_reaction as ChatResponse["scene_reaction"]) ?? "none",
     image_prompt: parsed.image_prompt ? String(parsed.image_prompt) : undefined,
+    image_keyword: parsed.image_keyword ? String(parsed.image_keyword) : undefined,
   };
 }
 

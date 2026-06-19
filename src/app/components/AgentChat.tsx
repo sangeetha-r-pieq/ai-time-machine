@@ -6,7 +6,7 @@ import { ERA_PROMPT_CHIPS, ERA_HOTSPOTS, FUN_PROMPT_CHIPS } from "./era-hotspots
 import { ERA_MISSIONS } from "./era-missions";
 import { getAgentPersonality } from "./agent-personalities";
 import { getAgentAvatar } from "./india-content";
-import { pollinationsUrl } from "./image-utils";
+import { pollinationsUrl, getChatImage } from "./image-utils";
 import { getAgentGender, getAgentVoiceProfile, genderIcon, genderLabel } from "./agent-voices";
 import { ChatBubble, TypingBubble, FunFactCard, CharacterAvatar } from "./ChatBubble";
 import { formatMessageText } from "./message-format";
@@ -304,9 +304,7 @@ export function AgentChat({
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: partial } : m));
     });
 
-    const imgUrl = response.image_prompt
-      ? pollinationsUrl(response.image_prompt)
-      : undefined;
+    const imgUrl = await getChatImage(response.image_keyword, response.image_prompt);
 
     setMessages(prev => prev.map(m =>
       m.id === msgId ? { ...m, text: response.reply, imageUrl: imgUrl, streaming: false } : m

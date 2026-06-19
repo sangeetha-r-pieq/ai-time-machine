@@ -39,7 +39,7 @@ function cacheSet(key: string, url: string) {
 }
 
 // ── Wikipedia REST API (no key needed, no rate issues for 1 req/era) ────────
-async function fetchWikipediaImage(topic: string): Promise<string | null> {
+export async function fetchWikipediaImage(topic: string): Promise<string | null> {
   try {
     const r = await fetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`
@@ -53,6 +53,17 @@ async function fetchWikipediaImage(topic: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export async function getChatImage(keyword?: string, prompt?: string): Promise<string | undefined> {
+  if (keyword) {
+    const realImg = await fetchWikipediaImage(keyword);
+    if (realImg) return realImg; // Use real image if found!
+  }
+  if (prompt) {
+    return pollinationsUrl(prompt); // Fallback to AI
+  }
+  return undefined;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
