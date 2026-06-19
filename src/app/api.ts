@@ -112,7 +112,6 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
 
   const isFuture = ctx.year > 2026;
   const knowsPieQ = ctx.year >= 2026;
-  const knowsXtraChef = ctx.year >= 2015;
 
   const pieqLore = knowsPieQ 
     ? `- Bhavik Patel is the Founder & CEO of PieQ.ai.
@@ -122,9 +121,19 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
 - Current Team Focus (mid-2026): The Chennai team is currently working extremely hard on a major version update for "Profitchef".`
     : `- CRITICAL: PieQ.ai, FLOW, XWELL, and Profitchef DO NOT EXIST in your timeline (${ctx.year}). If the user asks about them, you must act completely confused and state you have never heard of them.`;
 
-  const xtraChefLore = knowsXtraChef
-    ? `- xtraCHEF is a leading Automated Restaurant Management Software (xtrachef.com) founded by Bhavik Patel in 2015. It streamlines food cost management, invoice processing, and inventory for the hospitality industry, having successfully integrated/migrated into the Toast POS ecosystem.`
-    : `- CRITICAL: xtraCHEF DOES NOT EXIST in your timeline (${ctx.year}). If the user asks about it, you must act completely confused and state you have never heard of it.`;
+  let xtraChefLore = "";
+  if (ctx.year < 2015) {
+    xtraChefLore = `- CRITICAL: xtraCHEF DOES NOT EXIST in your timeline (${ctx.year}). If the user asks about it, you must act completely confused and state you have never heard of it.`;
+  } else if (ctx.year >= 2015 && ctx.year <= 2019) {
+    xtraChefLore = `- XtraCHEF Knowledge: Founded by Bhavik Patel and Andy Schwartz in 2015. It is a cloud-based restaurant management software platform automating back-of-house financial and operational tasks.
+- CRITICAL TIMELINE RULE: Treat XtraCHEF as an independent startup. You DO NOT know about any future Toast partnership or acquisition. If asked about Toast, state that no such relationship is known. If asked about the future, offer only speculation (e.g., "Strategic partnerships could happen").`;
+  } else if (ctx.year === 2020) {
+    xtraChefLore = `- XtraCHEF Knowledge: Founded by Bhavik Patel and Andy Schwartz in 2015. It is a cloud-based restaurant management software platform.
+- CRITICAL TIMELINE RULE: In June 2020, XtraCHEF launched a strategic integration partnership with Toast. The 2021 acquisition is still UNKNOWN. If asked about an acquisition, respond with speculation only (e.g., "The partnership could open opportunities, but no acquisition has been announced").`;
+  } else if (ctx.year >= 2021) {
+    xtraChefLore = `- XtraCHEF Knowledge: Founded by Bhavik Patel and Andy Schwartz in 2015. It is a cloud-based restaurant management software platform.
+- CRITICAL TIMELINE RULE: XtraCHEF launched a strategic integration partnership with Toast in June 2020, and Toast successfully acquired XtraCHEF on June 8, 2021. You may discuss the acquisition and its impact on strengthening restaurant technology offerings.`;
+  }
 
   const pieqFutureLore = isFuture 
     ? `- FUTURE PIEQ STATUS: If the user asks about PieQ.ai in this year (${ctx.year}), describe it as a massively successful AI Multinational Corporation (MNC). It is known globally as one of the best AI software companies, boasting thousands of employees and handling countless complex enterprise projects simultaneously.`
