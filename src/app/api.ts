@@ -111,6 +111,20 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
     : "";
 
   const isFuture = ctx.year > 2026;
+  const isBeforePieQ = ctx.year < 2026;
+
+  const pieqLore = isBeforePieQ 
+    ? `- CRITICAL: PieQ.ai, Bhavik Patel, FLOW, XWELL, and xtraCHEF DO NOT EXIST in your timeline (${ctx.year}). If the user asks about them, you must act completely confused and state you have never heard of them.`
+    : `- Bhavik Patel is the Founder & CEO of PieQ.ai, the Founder of xtraCHEF, and an active investor and advisor in the tech space.
+- PieQ.ai is an AI-native technology company officially introduced in July 2026. Headquartered in Philadelphia, USA with a major engineering hub in Chennai, India. Their projects include a major Insurance Management Platform.
+- Core Tech: "FLOW", a proprietary Agentic AI core orchestrating complex workflows and predictive risk modeling for regulated industries.
+- Key Milestone: PieQ partnered with XWELL and successfully delivered "Orbit", an AI-powered biosecurity forecasting platform supporting the CDC's Traveler-based Genomic Surveillance program.
+- Current Team Focus (mid-2026): The Chennai team is currently working extremely hard on a major version update for "Profitchef".
+- xtraCHEF by Toast is a leading Automated Restaurant Management Software (xtrachef.com) that streamlines food cost management, invoice processing, and inventory for the hospitality industry, having successfully integrated/migrated into the Toast POS ecosystem.`;
+
+  const pieqFutureLore = isFuture 
+    ? `- FUTURE PIEQ STATUS: If the user asks about PieQ.ai in this year (${ctx.year}), describe it as a massively successful AI Multinational Corporation (MNC). It is known globally as one of the best AI software companies, boasting thousands of employees and handling countless complex enterprise projects simultaneously.`
+    : "";
 
   return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}).
 
@@ -119,12 +133,8 @@ ${CONTENT_LENS}
 HARDCODED WORLD FACTS (AS OF 2026):
 - Royal Challengers Bengaluru (RCB) won the Indian Premier League (IPL) in 2026, defeating Gujarat Titans by 5 wickets. It was their second consecutive IPL title.
 - C. Joseph Vijay of the Tamilaga Vettri Kazhagam became the Chief Minister of Tamil Nadu on 10 May 2026. He was the first CM from a non-Dravidian party since 1967.
-- Bhavik Patel is the Founder & CEO of PieQ.ai, the Founder of xtraCHEF, and an active investor and advisor in the tech space.
-- PieQ.ai is an AI-native technology company founded in 2025. Headquartered in Philadelphia, USA with a major engineering hub in Chennai, India. Their projects include a major Insurance Management Platform.
-- Core Tech: "FLOW", a proprietary Agentic AI core orchestrating complex workflows and predictive risk modeling for regulated industries.
-- Key Milestone: PieQ partnered with XWELL and successfully delivered "Orbit", an AI-powered biosecurity forecasting platform supporting the CDC's Traveler-based Genomic Surveillance program.
-- Current Team Focus (mid-2026): The Chennai team is currently working extremely hard on a major version update for "Profitchef".
-- xtraCHEF by Toast is a leading Automated Restaurant Management Software (xtrachef.com) that streamlines food cost management, invoice processing, and inventory for the hospitality industry, having successfully integrated/migrated into the Toast POS ecosystem.
+${pieqLore}
+${pieqFutureLore}
 ${isFuture ? `- CRITICAL: You are living in the FUTURE (${ctx.year}). The events above happened in the past (2025-2026). DO NOT say they are happening right now. You MUST realistically predict what happened next.` : `- Keep in mind that the current year for the user is 2026, and these events have already happened. OVERRIDE any Wikipedia snippets that say otherwise.`}
 ${ctx.webContext ? `\nLATEST LIVE WEB FACTS (Use this to answer the user accurately):\n${ctx.webContext}` : ""}
 
