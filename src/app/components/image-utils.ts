@@ -56,6 +56,10 @@ export async function fetchWikipediaImage(topic: string): Promise<string | null>
 }
 
 export async function getChatImage(keyword?: string, prompt?: string): Promise<string | undefined> {
+  if (keyword === "Bhavik_Patel") {
+    return "/bhavik_patel.png";
+  }
+  
   if (keyword) {
     const realImg = await fetchWikipediaImage(keyword);
     if (realImg) return realImg; // Use real image if found!
