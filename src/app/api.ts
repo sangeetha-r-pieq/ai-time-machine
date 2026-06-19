@@ -34,6 +34,7 @@ export interface ChatRequestContext {
   question: string;
   history: ChatHistoryItem[];
   missionAlreadyComplete: boolean;
+  webContext?: string;
 }
 
 const MODEL_PRIMARY = "llama-3.3-70b-versatile";
@@ -45,6 +46,20 @@ const API_KEY = import.meta.env.VITE_GROQ_API_KEY ?? "";
 
 function trimHistory(history: ChatHistoryItem[]): ChatHistoryItem[] {
   return history.slice(-MAX_HISTORY_TURNS * 2);
+}
+
+async function fetchWebContext(query: string): Promise<string> {
+  try {
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+    if (!res.ok) return "";
+    const data = await res.json();
+    if (!data?.query?.search?.length) return "";
+    const snippets = data.query.search.slice(0, 3).map((s: any) => s.snippet.replace(/<[^>]*>?/gm, ''));
+    return snippets.join(" | ");
+  } catch (e) {
+    console.error("Wikipedia search failed", e);
+    return "";
+  }
 }
 
 function buildSystemPrompt(ctx: ChatRequestContext): string {
@@ -59,6 +74,11 @@ function buildSystemPrompt(ctx: ChatRequestContext): string {
   return `You are ${ctx.agentName}, ${ctx.agentRole}, living in the year ${ctx.year} (${ctx.eraName}).
 
 ${CONTENT_LENS}
+
+RECENT KNOWLEDGE UPDATE (IMPORTANT):
+- Royal Challengers Bengaluru (RCB) won the Indian Premier League (IPL) in 2026, defeating Gujarat Titans by 5 wickets. It was their second consecutive IPL title.
+- Keep in mind that the current year for the user is 2026, and these events have already happened.
+${ctx.webContext ? `\nLATEST LIVE WEB FACTS (Use this to answer the user accurately):\n${ctx.webContext}` : ""}
 
 PERSONALITY: ${ctx.personality.personality}
 SPEECH STYLE: ${ctx.personality.speechStyle}
@@ -77,6 +97,7 @@ CRITICAL — ANSWERING RULES:
 4. Answer from your character's perspective in their era and location.
 5. Stay in character as ${ctx.agentName}. Never mention being an AI or JSON.
 6. If the question is unclear, ask one short clarifying question in character.
+7. Ensure all historical facts or references are perfectly accurate. The user is a time traveler from ${new Date().getFullYear()}, so base your underlying knowledge on up-to-date facts as of ${new Date().toISOString().split('T')[0]}, while still roleplaying in ${ctx.year}.
 
 TONE — NOT A CHATBOT:
 - Talk like a real person in conversation, not an essay or Wikipedia summary.
@@ -176,6 +197,16 @@ async function callGroq(messages: { role: string; content: string }[], model: st
 }
 
 export async function fetchAgentChat(ctx: ChatRequestContext): Promise<ChatFetchResult> {
+  // Fetch live web context based on the user's latest question to ensure accuracy
+  try {
+    const webCtx = await fetchWebContext(ctx.question);
+    if (webCtx) {
+      ctx.webContext = webCtx;
+    }
+  } catch (e) {
+    // Ignore search errors
+  }
+
   const messages = buildMessages(ctx);
 
   if (!API_KEY && !import.meta.env.DEV) {
