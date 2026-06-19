@@ -4,6 +4,7 @@ import { YearPicker } from "./components/YearPicker";
 import { TravelAnimation } from "./components/TravelAnimation";
 import { EraScene } from "./components/EraScene";
 import { AgentChat } from "./components/AgentChat";
+import { MusicPlayer } from "./components/MusicPlayer";
 import { getEraConfig, formatYear, type EraId } from "./components/era-config";
 import { useWideLayout } from "./hooks/useWideLayout";
 import { getEraBackgroundUrl } from "./components/india-content";
@@ -299,21 +300,24 @@ export default function App() {
                 background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)",
               }}
             >
-              <div>
-                <div style={{
-                  fontFamily: "'DM Mono', monospace", fontSize: "18px", fontWeight: 300,
-                  color: "#fff", letterSpacing: "-0.01em",
-                }}>
-                  {formatYear(year)}
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div style={{
+                    fontFamily: "'DM Mono', monospace", fontSize: "18px", fontWeight: 300,
+                    color: "#fff", letterSpacing: "-0.01em",
+                  }}>
+                    {formatYear(year)}
+                  </div>
+                  <motion.div
+                    key={year}
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: config.accentColor, marginTop: 2 }}
+                  >
+                    {config.name.toUpperCase()} · {config.period}
+                  </motion.div>
                 </div>
-                <motion.div
-                  key={year}
-                  initial={{ opacity: 0, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: config.accentColor, marginTop: 2 }}
-                >
-                  {config.name.toUpperCase()} · {config.period}
-                </motion.div>
+                <MusicPlayer year={year} />
               </div>
 
               {/* Agent names listed */}
