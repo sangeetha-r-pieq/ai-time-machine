@@ -20,19 +20,19 @@ export interface StoredChat {
 
 const PREFIX = "ai-time-machine-chat-";
 
-export function loadChat(eraId: EraId): StoredChat | null {
+export function loadChat(eraId: EraId, year: number): StoredChat | null {
   try {
-    const raw = localStorage.getItem(`${PREFIX}${eraId}`);
+    const raw = localStorage.getItem(`${PREFIX}${eraId}-${year}`);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-export function saveChat(eraId: EraId, chat: StoredChat): void {
-  localStorage.setItem(`${PREFIX}${eraId}`, JSON.stringify(chat));
+export function saveChat(eraId: EraId, year: number, chat: StoredChat): void {
+  localStorage.setItem(`${PREFIX}${eraId}-${year}`, JSON.stringify(chat));
 }
 
-export function clearChat(eraId: EraId): void {
-  localStorage.removeItem(`${PREFIX}${eraId}`);
+export function clearChat(eraId: EraId, year: number): void {
+  localStorage.removeItem(`${PREFIX}${eraId}-${year}`);
 }

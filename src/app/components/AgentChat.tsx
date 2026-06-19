@@ -84,6 +84,7 @@ export function AgentChat({
   const dragRef = useRef<{ startY: number; startH: number } | null>(null);
   const panelHeightRef = useRef(panelHeight);
   const prevEra = useRef(config.id);
+  const prevYear = useRef(year);
   const hydrated = useRef(false);
   const journeyLogged = useRef(false);
 
@@ -121,13 +122,14 @@ export function AgentChat({
   }, [panelHeight]);
 
   useEffect(() => {
-    if (prevEra.current !== config.id) {
+    if (prevEra.current !== config.id || prevYear.current !== year) {
       prevEra.current = config.id;
+      prevYear.current = year;
       hydrated.current = false;
       journeyLogged.current = false;
     }
 
-    const stored = loadChat(config.id);
+    const stored = loadChat(config.id, year);
     if (stored && !hydrated.current) {
       setMessages(stored.messages);
       setSelectedAgentId(stored.selectedAgentId);
@@ -157,8 +159,8 @@ export function AgentChat({
 
   useEffect(() => {
     if (!hydrated.current || messages.length === 0) return;
-    saveChat(config.id, { messages, missionComplete, selectedAgentId });
-  }, [messages, missionComplete, selectedAgentId, config.id]);
+    saveChat(config.id, year, { messages, missionComplete, selectedAgentId });
+  }, [messages, missionComplete, selectedAgentId, config.id, year]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -343,7 +345,7 @@ export function AgentChat({
   }, [busy, selectedAgentId, speakWithScene, onAgentSpeaking]);
 
   const handleClearChat = () => {
-    clearChat(config.id);
+    clearChat(config.id, year);
     const primary = config.agents[0];
     setMessages([{
       id: `arrival-${config.id}-${Date.now()}`,

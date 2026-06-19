@@ -14,8 +14,8 @@ export interface ChatResponse {
   mission_complete: boolean;
   follow_up_chips: string[];
   scene_reaction: "none" | "fire" | "stars" | "snow" | "digital" | "spark";
-  image_prompt?: string;
-  image_keyword?: string;
+  image_prompt: string;
+  image_keyword: string;
 }
 
 export interface ChatRequestContext {
@@ -49,9 +49,47 @@ function trimHistory(history: ChatHistoryItem[]): ChatHistoryItem[] {
   return history.slice(-MAX_HISTORY_TURNS * 2);
 }
 
-async function fetchWebContext(query: string): Promise<string> {
+async function fetchWithTimeout(resource: string, options: RequestInit & { timeout?: number } = {}) {
+  const { timeout = 2500 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+    const response = await fetch(resource, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
+async function fetchWebContext(query: string): Promise<string> {
+  // 1. Try a general web search (DuckDuckGo) via a free CORS proxy (max 2.5s)
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`)}`;
+    const ddgRes = await fetchWithTimeout(proxyUrl, { timeout: 2500 });
+    if (ddgRes.ok) {
+      const ddgData = await ddgRes.json();
+      if (ddgData.contents) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(ddgData.contents, 'text/html');
+        const snippets = Array.from(doc.querySelectorAll('.result__snippet'))
+          .slice(0, 3)
+          .map(el => el.textContent?.trim() || '')
+          .filter(Boolean);
+        
+        if (snippets.length > 0) {
+          return snippets.join(" | ");
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("General web search failed or timed out, falling back to Wikipedia");
+  }
+
+  // 2. Fallback to Wikipedia if general web search fails or finds nothing
+  try {
+    const res = await fetchWithTimeout(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`, { timeout: 2000 });
     if (!res.ok) return "";
     const data = await res.json();
     if (!data?.query?.search?.length) return "";
@@ -79,6 +117,7 @@ ${CONTENT_LENS}
 RECENT KNOWLEDGE UPDATE (IMPORTANT):
 - Royal Challengers Bengaluru (RCB) won the Indian Premier League (IPL) in 2026, defeating Gujarat Titans by 5 wickets. It was their second consecutive IPL title.
 - C. Joseph Vijay of the Tamilaga Vettri Kazhagam is the Chief Minister of Tamil Nadu (incumbent since 10 May 2026). He is the first CM from a non-Dravidian party since 1967.
+- PieQ.ai is an AI-native technology company founded in 2025 that builds intelligent, agent-driven platforms for complex industries like healthcare and insurance. They specialize in Agentic AI with their primary product being an orchestration engine called FLOW. They operate a US startup with an Indian subsidiary in T. Nagar, Chennai.
 - Keep in mind that the current year for the user is 2026, and these events have already happened. OVERRIDE any Wikipedia snippets that say otherwise.
 ${ctx.webContext ? `\nLATEST LIVE WEB FACTS (Use this to answer the user accurately):\n${ctx.webContext}` : ""}
 
@@ -115,8 +154,8 @@ OUTPUT FIELDS:
 - fun_fact: one surprising specific fact tied to the topic — spicy or memorable.
 - follow_up_chips: 2 short playful follow-ups (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
-- image_prompt: a descriptive 8-15 word prompt for generating an image showing the subject/events mentioned in the reply. Must be historical, specific, realistic/period-appropriate (e.g. "old polaroid photo of a 1990s desktop computer, warm lighting"). Do not include any text or watermark.
-- image_keyword: a 1-3 word specific noun or proper noun from your reply to use for a Wikipedia image search (e.g., "Royal Challengers Bengaluru", "Apollo 11", "Marilyn Monroe"). Use exact names.
+- image_prompt: (MANDATORY FOR EVERY REPLY) A descriptive 8-15 word prompt for an AI image generator showing the subject/events mentioned in the reply.
+- image_keyword: (MANDATORY FOR EVERY REPLY) A 1-3 word specific noun or proper noun from your reply to use for a Wikipedia image search (e.g., "Royal Challengers Bengaluru", "Apollo 11").
 
 Respond ONLY with valid JSON:
 {"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none","image_prompt":"...","image_keyword":"..."}`;
@@ -160,8 +199,8 @@ function parseResponse(raw: string): ChatResponse {
       ? parsed.follow_up_chips.slice(0, 3).map(String)
       : [],
     scene_reaction: (parsed.scene_reaction as ChatResponse["scene_reaction"]) ?? "none",
-    image_prompt: parsed.image_prompt ? String(parsed.image_prompt) : undefined,
-    image_keyword: parsed.image_keyword ? String(parsed.image_keyword) : undefined,
+    image_prompt: parsed.image_prompt ? String(parsed.image_prompt) : "a colorful abstract representation of time travel, digital art",
+    image_keyword: parsed.image_keyword ? String(parsed.image_keyword) : "Time travel",
   };
 }
 
