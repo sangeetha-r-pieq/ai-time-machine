@@ -186,7 +186,7 @@ OUTPUT FIELDS:
 - follow_up_chips: 2 short playful follow-ups (max 6 words each).
 - scene_reaction: one of none|fire|stars|snow|digital|spark based on topic.
 - image_prompt: (MANDATORY FOR EVERY REPLY) A descriptive 8-15 word prompt for an AI image generator showing the subject/events mentioned in the reply.
-- image_keyword: (MANDATORY FOR EVERY REPLY) A 1-3 word specific noun or proper noun from your reply to use for a Wikipedia image search. CRITICAL: If you mention Bhavik Patel or the founder of PieQ/xtraCHEF, you MUST set image_keyword exactly to "Bhavik_Patel".
+- image_keyword: (MANDATORY FOR EVERY REPLY) A 1-3 word specific noun or proper noun from your reply to use for a Wikipedia image search. CRITICAL: If you discuss PieQ's founder, use "Bhavik_Patel". If you discuss xtraCHEF or the xtraCHEF founders, use "xtraCHEF".
 
 Respond ONLY with valid JSON:
 {"reply":"...","fun_fact":"...","mission_complete":false,"follow_up_chips":["...","..."],"scene_reaction":"none","image_prompt":"...","image_keyword":"..."}`;

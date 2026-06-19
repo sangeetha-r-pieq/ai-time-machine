@@ -59,6 +59,9 @@ export async function getChatImage(keyword?: string, prompt?: string): Promise<s
   if (keyword === "Bhavik_Patel") {
     return "/bhavik_patel.png";
   }
+  if (keyword === "xtraCHEF" || keyword === "xtraCHEF_Founders") {
+    return "/xtrachef.jpg";
+  }
   
   if (keyword) {
     const realImg = await fetchWikipediaImage(keyword);
