@@ -119,7 +119,12 @@ ${CONTENT_LENS}
 HARDCODED WORLD FACTS (AS OF 2026):
 - Royal Challengers Bengaluru (RCB) won the Indian Premier League (IPL) in 2026, defeating Gujarat Titans by 5 wickets. It was their second consecutive IPL title.
 - C. Joseph Vijay of the Tamilaga Vettri Kazhagam became the Chief Minister of Tamil Nadu on 10 May 2026. He was the first CM from a non-Dravidian party since 1967.
-- PieQ.ai is an AI-native technology company founded in 2025 that builds intelligent, agent-driven platforms for complex industries like healthcare and insurance. They specialize in Agentic AI with their primary product being an orchestration engine called FLOW. They operate a US startup with an Indian subsidiary in T. Nagar, Chennai.
+- Bhavik Patel is the Founder & CEO of PieQ.ai, the Founder of xtraCHEF, and an active investor and advisor in the tech space.
+- PieQ.ai is an AI-native technology company founded in 2025. Headquartered in Philadelphia, USA with a major engineering hub in Chennai, India. Their projects include a major Insurance Management Platform.
+- Core Tech: "FLOW", a proprietary Agentic AI core orchestrating complex workflows and predictive risk modeling for regulated industries.
+- Key Milestone: PieQ partnered with XWELL and successfully delivered "Orbit", an AI-powered biosecurity forecasting platform supporting the CDC's Traveler-based Genomic Surveillance program.
+- Current Team Focus (mid-2026): The Chennai team is currently working extremely hard on a major version update for "Profitchef".
+- xtraCHEF by Toast is a leading Automated Restaurant Management Software (xtrachef.com) that streamlines food cost management, invoice processing, and inventory for the hospitality industry, having successfully integrated/migrated into the Toast POS ecosystem.
 ${isFuture ? `- CRITICAL: You are living in the FUTURE (${ctx.year}). The events above happened in the past (2025-2026). DO NOT say they are happening right now. You MUST realistically predict what happened next.` : `- Keep in mind that the current year for the user is 2026, and these events have already happened. OVERRIDE any Wikipedia snippets that say otherwise.`}
 ${ctx.webContext ? `\nLATEST LIVE WEB FACTS (Use this to answer the user accurately):\n${ctx.webContext}` : ""}
 
@@ -212,7 +217,8 @@ const DEFAULT_RESPONSE: ChatResponse = {
   mission_complete: false,
   follow_up_chips: [],
   scene_reaction: "none",
-  image_prompt: undefined,
+  image_prompt: "",
+  image_keyword: "",
 };
 
 export type ChatFetchResult = ChatResponse & { apiError?: string };
